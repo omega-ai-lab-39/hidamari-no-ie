@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ケアコンパス｜ひだまりの家 業務支援システム</title>
+<meta name="theme-color" content="#D9552B">
+<meta name="robots" content="noindex">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F7F5F1; --panel:#FFFFFF; --text:#2E2A26; --muted:#6B6259;
+  --accent:#D9552B; --accent-deep:#B23F1C; --leaf:#6E9350; --amber:#DE8A2A;
+  --line:#EAE2D6; --soft:#FDF8F2; --radius:16px;
+  --shadow:0 6px 24px rgba(180,120,80,.10);
+  --red:#D9552B; --green:#4E8A4E; --blue:#4F86C6;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Noto Sans JP",system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:15.5px;line-height:1.7;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{margin:0}
+button{font-family:inherit;cursor:pointer}
+a{color:var(--accent-deep)}
+
+/* ---------- Top bar ---------- */
+.topbar{position:sticky;top:0;z-index:40;background:linear-gradient(90deg,#FFF6E6,#FFFFFF);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:16px;padding:12px 22px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:1.25rem}
+.logo .sun{width:34px;height:34px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#FFE9A8,#F6BE56);box-shadow:0 0 0 6px rgba(246,190,86,.18)}
+.logo small{display:block;font-size:.72rem;color:var(--muted);font-weight:500}
+.topbar .spacer{flex:1}
+.rolebox{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:5px 6px 5px 14px}
+.rolebox label{font-size:.82rem;color:var(--muted)}
+.rolebox select{border:none;background:var(--soft);border-radius:999px;padding:6px 12px;font-weight:600;font-size:.9rem;color:var(--accent-deep)}
+.datechip{font-size:.9rem;color:var(--muted)}
+.whoami{font-weight:600}
+
+/* ---------- Tabs ---------- */
+.tabs{display:flex;gap:4px;padding:0 18px;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:59px;z-index:30;overflow-x:auto}
+.tab{border:none;background:none;padding:14px 18px;font-size:.98rem;font-weight:600;color:var(--muted);border-bottom:3px solid transparent;white-space:nowrap;display:flex;align-items:center;gap:7px}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--accent-deep);border-bottom-color:var(--accent)}
+.tab .badge{background:var(--accent);color:#fff;border-radius:999px;font-size:.72rem;padding:1px 7px}
+
+/* ---------- Layout ---------- */
+.wrap{max-width:1180px;margin:0 auto;padding:22px}
+.view{display:none;animation:fade .25s ease}
+.view.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin-bottom:16px;flex-wrap:wrap}
+.page-head h2{font-size:1.5rem}
+.page-head p{margin:2px 0 0;color:var(--muted);font-size:.92rem}
+
+/* ---------- AI panel ---------- */
+.ai{display:flex;gap:14px;background:linear-gradient(90deg,#FFF7EC,#FFFDF8);border:1px solid #F0DEB8;border-radius:var(--radius);padding:16px 18px;margin-bottom:20px}
+.ai .bot{font-size:1.8rem;line-height:1;flex:none}
+.ai h4{font-size:.95rem;color:var(--accent-deep);margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.ai .tag{background:#F6BE56;color:#5c3d00;border-radius:6px;font-size:.68rem;padding:1px 7px;font-weight:700}
+.ai p{margin:0;font-size:.95rem}
+.ai ul{margin:6px 0 0;padding-left:18px;font-size:.92rem}
+.ai li{margin:2px 0}
+
+/* ---------- Cards / KPI ---------- */
+.grid{display:grid;gap:16px}
+.kpis{grid-template-columns:repeat(4,1fr)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px}
+.kpi .lab{color:var(--muted);font-size:.85rem}
+.kpi .num{font-size:2rem;font-weight:700;line-height:1.2}
+.kpi .num small{font-size:.9rem;font-weight:600;color:var(--muted)}
+.kpi .sub{font-size:.8rem;margin-top:2px}
+.up{color:var(--green)}.down{color:var(--red)}
+.cols{display:grid;grid-template-columns:1.4fr 1fr;gap:16px}
+@media(max-width:900px){.kpis{grid-template-columns:repeat(2,1fr)}.cols{grid-template-columns:1fr}}
+
+.card h3{font-size:1.05rem;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.card h3 .mini{font-size:.78rem;color:var(--muted);font-weight:500}
+
+/* ---------- Table ---------- */
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.input,.select{border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-size:.92rem;font-family:inherit;background:#fff}
+.input{min-width:200px}
+.btn{border:1px solid transparent;border-radius:10px;padding:9px 16px;font-size:.92rem;font-weight:600}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:var(--accent-deep)}
+.btn-ghost{background:#fff;border-color:var(--line);color:var(--text)}
+.btn-ghost:hover{background:var(--soft)}
+.btn-sm{padding:6px 12px;font-size:.84rem;border-radius:8px}
+table{width:100%;border-collapse:collapse;background:#fff;border-radius:var(--radius);overflow:hidden}
+th,td{text-align:left;padding:12px 14px;border-bottom:1px solid var(--line);font-size:.92rem}
+th{background:var(--soft);font-weight:700;color:var(--muted);font-size:.82rem;letter-spacing:.02em}
+tr:last-child td{border-bottom:none}
+tbody tr:hover{background:#FCFAF6;cursor:pointer}
+.namecell{font-weight:600}
+.sub2{color:var(--muted);font-size:.8rem}
+
+/* ---------- score ---------- */
+.tier{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 11px;font-size:.82rem;font-weight:600}
+.t-red{background:#FCEBE3;color:#B23F1C}
+.t-amber{background:#FBF0DC;color:#9A6212}
+.t-green{background:#E7F1E0;color:#3C6B3C}
+.dot{width:8px;height:8px;border-radius:50%}
+.score-bar{height:8px;background:#EEE7DC;border-radius:999px;overflow:hidden;min-width:90px}
+.score-bar i{display:block;height:100%;border-radius:999px}
+
+/* ---------- status chips ---------- */
+.chip{display:inline-block;border-radius:999px;padding:2px 10px;font-size:.78rem;font-weight:600}
+.s-draft{background:#EEE9E2;color:#6B6259}
+.s-submitted{background:#E4EEF7;color:#2F639B}
+.s-reviewed{background:#FBF0DC;color:#9A6212}
+.s-approved{background:#E7F1E0;color:#3C6B3C}
+.s-rejected{background:#FCE3E3;color:#B23030}
+
+/* ---------- Kanban ---------- */
+.kanban{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+@media(max-width:900px){.kanban{grid-template-columns:1fr}}
+.col{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:12px;min-height:120px}
+.col h4{font-size:.92rem;display:flex;justify-content:space-between;align-items:center;padding-bottom:8px;border-bottom:2px solid var(--line);margin-bottom:10px}
+.col h4 .cnt{background:var(--soft);border-radius:999px;padding:0 8px;font-size:.78rem;color:var(--muted)}
+.wf{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:11px 12px;margin-bottom:10px}
+.wf .top{display:flex;justify-content:space-between;font-size:.82rem;color:var(--muted)}
+.wf .nm{font-weight:600;color:var(--text);font-size:.95rem}
+.wf .act{display:flex;gap:6px;margin-top:8px}
+.wf .locked{font-size:.76rem;color:var(--muted);display:flex;align-items:center;gap:4px;margin-top:8px}
+
+/* ---------- charts ---------- */
+.bars{display:flex;align-items:flex-end;gap:14px;height:180px;padding-top:10px}
+.bars .b{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end}
+.bars .b .bar{width:100%;max-width:54px;border-radius:8px 8px 0 0;transition:height .6s ease}
+.bars .b .v{font-weight:700;font-size:.9rem}
+.bars .b .x{font-size:.78rem;color:var(--muted);text-align:center}
+.dist{display:flex;flex-direction:column;gap:12px}
+.dist .row{display:grid;grid-template-columns:120px 1fr 40px;align-items:center;gap:10px}
+.dist .track{height:22px;background:#EEE7DC;border-radius:8px;overflow:hidden}
+.dist .track i{display:block;height:100%}
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;font-size:.85rem;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+
+/* ---------- Modal ---------- */
+.overlay{position:fixed;inset:0;background:rgba(46,42,38,.42);display:none;align-items:center;justify-content:center;z-index:100;padding:20px}
+.overlay.open{display:flex;animation:fade .2s ease}
+.modal{background:#fff;border-radius:18px;max-width:560px;width:100%;max-height:88vh;overflow:auto;box-shadow:0 24px 70px rgba(0,0,0,.25)}
+.modal .mh{padding:18px 22px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+.modal .mh h3{font-size:1.15rem}
+.modal .mb{padding:20px 22px}
+.modal .mf{padding:14px 22px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+.x{border:none;background:none;font-size:1.5rem;color:var(--muted);line-height:1}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:.85rem;font-weight:600;margin-bottom:5px}
+.field .input,.field .select,.field textarea{width:100%}
+textarea{border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:.92rem;resize:vertical}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.kv{display:grid;grid-template-columns:120px 1fr;gap:6px 14px;font-size:.93rem}
+.kv dt{color:var(--muted)}.kv dd{margin:0;font-weight:600}
+.tl{list-style:none;margin:14px 0 0;padding:0;border-left:2px solid var(--line);margin-left:6px}
+.tl li{position:relative;padding:0 0 12px 18px;font-size:.86rem}
+.tl li::before{content:"";position:absolute;left:-6px;top:5px;width:10px;height:10px;border-radius:50%;background:var(--accent)}
+.tl .t{color:var(--muted);font-size:.78rem}
+
+/* ---------- Toast ---------- */
+.toasts{position:fixed;right:20px;bottom:20px;z-index:200;display:flex;flex-direction:column;gap:10px}
+.toast{background:#2E2A26;color:#fff;padding:12px 18px;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.25);font-size:.9rem;display:flex;align-items:center;gap:10px;animation:slideup .3s ease}
+.toast.ok{background:#3C6B3C}.toast.warn{background:var(--accent-deep)}
+@keyframes slideup{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.pill{display:inline-block;background:var(--soft);border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:.78rem;color:var(--muted);margin:2px 4px 2px 0}
+.empty{text-align:center;color:var(--muted);padding:30px;font-size:.9rem}
+.foot{max-width:1180px;margin:10px auto 30px;padding:0 22px;color:var(--muted);font-size:.8rem;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
+</style>
+</head>
+<body>
+
+<!-- ================= Top bar ================= -->
+<header class="topbar">
+  <div class="logo"><span class="sun"></span>ケアコンパス<small>ひだまりの家 業務支援システム</small></div>
+  <div class="spacer"></div>
+  <div class="datechip" id="today"></div>
+  <div class="rolebox">
+    <label>ログイン中</label>
+    <select id="role" onchange="setRole(this.value)">
+      <option value="担当">担当（介護職）</option>
+      <option value="リーダー">リーダー（機能訓練指導員）</option>
+      <option value="管理者" selected>管理者（施設長）</option>
+    </select>
+  </div>
+</header>
+
+<!-- ================= Tabs ================= -->
+<nav class="tabs" id="tabs">
+  <button class="tab active" data-v="dash">📊 ダッシュボード</button>
+  <button class="tab" data-v="users">👥 利用者管理</button>
+  <button class="tab" data-v="records">📝 リハビリ記録</button>
+  <button class="tab" data-v="wf">✅ 承認ワークフロー <span class="badge" id="wfBadge">0</span></button>
+  <button class="tab" data-v="report">📈 分析レポート</button>
+</nav>
+
+<div class="wrap">
+
+  <!-- ============ Dashboard ============ -->
+  <section class="view active" id="v-dash">
+    <div class="page-head"><div><h2>ダッシュボード</h2><p id="dashSub"></p></div>
+      <button class="btn btn-ghost btn-sm" onclick="resetDemo()">🔄 デモデータを初期化</button></div>
+    <div class="ai" id="ai-dash"></div>
+    <div class="grid kpis" id="kpis"></div>
+    <div class="cols" style="margin-top:16px">
+      <div class="card"><h3>🗓️ 本日の来所予定 <span class="mini" id="attCount"></span></h3><div id="todayList"></div></div>
+      <div class="card"><h3>⚠️ 要フォロー <span class="mini">ケアスコアが低下傾向の方</span></h3><div id="alertList"></div></div>
+    </div>
+  </section>
+
+  <!-- ============ Users ============ -->
+  <section class="view" id="v-users">
+    <div class="page-head"><div><h2>利用者管理</h2><p>ケアスコア（0〜100点）で自立度・リスクを3層に自動振分</p></div>
+      <button class="btn btn-primary" onclick="userForm()">＋ 利用者を登録</button></div>
+    <div class="ai" id="ai-users"></div>
+    <div class="toolbar">
+      <input class="input" id="uSearch" placeholder="🔍 氏名・状態で検索" oninput="renderUsers()">
+      <select class="select" id="uTier" onchange="renderUsers()">
+        <option value="">すべての層</option>
+        <option value="red">🔴 要見守り（〜59点）</option>
+        <option value="amber">🟡 経過観察（60〜79点）</option>
+        <option value="green">🟢 安定（80点〜）</option>
+      </select>
+      <select class="select" id="uSort" onchange="renderUsers()">
+        <option value="score">並び替え：スコアが低い順</option>
+        <option value="scoreDesc">スコアが高い順</option>
+        <option value="name">氏名順</option>
+      </select>
+    </div>
+    <div id="userTable"></div>
+  </section>
+
+  <!-- ============ Records ============ -->
+  <section class="view" id="v-records">
+    <div class="page-head"><div><h2>リハビリ記録</h2><p>日々の訓練内容・バイタルを記録し、承認フローへ連携</p></div>
+      <button class="btn btn-primary" onclick="recordForm()">＋ 記録を作成</button></div>
+    <div class="ai" id="ai-records"></div>
+    <div class="toolbar">
+      <input class="input" id="rSearch" placeholder="🔍 利用者名・種目で検索" oninput="renderRecords()">
+      <select class="select" id="rStatus" onchange="renderRecords()">
+        <option value="">すべての状態</option>
+        <option value="draft">下書き</option>
+        <option value="submitted">提出済</option>
+        <option value="reviewed">確認済</option>
+        <option value="approved">承認済</option>
+        <option value="rejected">差し戻し</option>
+      </select>
+    </div>
+    <div id="recordTable"></div>
+  </section>
+
+  <!-- ============ Workflow ============ -->
+  <section class="view" id="v-wf">
+    <div class="page-head"><div><h2>承認ワークフロー</h2><p>下書き → 提出（担当）→ 確認（リーダー）→ 承認（管理者）の段階ゲート。役割ごとに操作可能</p></div></div>
+    <div class="ai" id="ai-wf"></div>
+    <div class="kanban" id="kanban"></div>
+  </section>
+
+  <!-- ============ Report ============ -->
+  <section class="view" id="v-report">
+    <div class="page-head"><div><h2>分析レポート</h2><p>ケアスコア分布・リハビリ実施状況・出席率の可視化</p></div></div>
+    <div class="ai" id="ai-report"></div>
+    <div class="cols">
+      <div class="card"><h3>🎯 ケアスコア3層分布</h3><div class="dist" id="distChart"></div>
+        <div class="legend"><span><span class="dot" style="background:var(--red)"></span>要見守り</span><span><span class="dot" style="background:var(--amber)"></span>経過観察</span><span><span class="dot" style="background:var(--green)"></span>安定</span></div></div>
+      <div class="card"><h3>📅 月次リハビリ実施回数</h3><div class="bars" id="monthChart"></div></div>
+    </div>
+    <div class="card" style="margin-top:16px"><h3>📊 種目別 実施サマリー <span class="mini">承認済み記録より集計</span></h3><div id="programChart"></div></div>
+  </section>
+
+</div>
+
+<div class="foot"><span>ケアコンパス（モック）｜ データはこのブラウザ内（localStorage）にのみ保存されます</span><span><a href="../index.html">← ひだまりの家 サイトへ戻る</a>　<span id="storeInfo"></span></span></div>
+
+<!-- Modal + Toast -->
+<div class="overlay" id="overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modal" role="dialog" aria-modal="true"></div>
+</div>
+<div class="toasts" id="toasts"></div>
+
+<script>
+/* =========================================================
+   ケアコンパス — ひだまりの家 業務支援システム（モック）
+   単一HTML / localStorage / 外部連携なし
+   ========================================================= */
+const STORE_KEY = 'hidamari_care_v1';          // ← スキーマ昇格対応キー
+const PROGRAMS = ['歩行訓練','筋力トレーニング','バランス訓練','関節可動域訓練','立ち上がり訓練','口腔体操','物理療法'];
+const STAGES = {
+  draft:    {label:'下書き',   next:'submitted', role:'担当',    act:'提出する', chip:'s-draft'},
+  submitted:{label:'提出済',   next:'reviewed',  role:'リーダー', act:'確認する', chip:'s-submitted'},
+  reviewed: {label:'確認済',   next:'approved',  role:'管理者',  act:'承認する', chip:'s-reviewed'},
+  approved: {label:'承認済',   next:null,        role:null,     act:null,       chip:'s-approved'},
+  rejected: {label:'差し戻し', next:null,        role:null,     act:null,       chip:'s-rejected'}
+};
+let state = load();
+let ROLE = '管理者';
+
+/* ---------- persistence ---------- */
+function load(){
+  try{ const raw=localStorage.getItem(STORE_KEY); if(raw){const d=JSON.parse(raw); if(d&&d.users&&d.users.length) return d;} }catch(e){}
+  const seeded = seed(); save(seeded); return seeded;
+}
+function save(s){ localStorage.setItem(STORE_KEY, JSON.stringify(s||state)); }
+
+/* ---------- score ---------- */
+function score(u){ return Math.max(0,Math.min(100, Math.round(u.adl+u.cog+u.stab))); }
+function tier(s){ return s>=80?'green':s>=60?'amber':'red'; }
+const TIERMETA={red:{n:'要見守り',c:'var(--red)',cls:'t-red',ico:'🔴'},amber:{n:'経過観察',c:'var(--amber)',cls:'t-amber',ico:'🟡'},green:{n:'安定',c:'var(--green)',cls:'t-green',ico:'🟢'}};
+
+/* ---------- seed sample data (10 users / 15 records) ---------- */
+function seed(){
+  const U=(id,name,kana,age,g,care,adl,cog,stab,cond,att)=>({id,name,kana,age,gender:g,care,adl,cog,stab,cond,attend:att,memo:''});
+  const users=[
+    U('u01','佐藤 ハナ','さとう はな',82,'女','要介護2',22,20,14,['高血圧','変形性膝関節症'],96),
+    U('u02','鈴木 一郎','すずき いちろう',78,'男','要支援2',34,26,22,['白内障'],92),
+    U('u03','高橋 よし子','たかはし よしこ',85,'女','要介護3',14,12,10,['脳梗塞後遺症','軽度認知症'],88),
+    U('u04','田中 茂','たなか しげる',80,'男','要介護1',26,22,18,['糖尿病'],90),
+    U('u05','伊藤 きく','いとう きく',88,'女','要介護4',10,9,8,['心不全','転倒歴あり'],74),
+    U('u06','渡辺 健二','わたなべ けんじ',76,'男','要支援1',37,28,25,[],98),
+    U('u07','山本 みつ','やまもと みつ',84,'女','要介護2',20,16,15,['骨粗しょう症'],86),
+    U('u08','中村 昭','なかむら あきら',81,'男','要介護2',24,18,12,['パーキンソン病'],83),
+    U('u09','小林 とし','こばやし とし',90,'女','要介護3',12,14,11,['難聴','低栄養傾向'],80),
+    U('u10','加藤 春夫','かとう はるお',73,'男','要支援2',35,27,24,['腰部脊柱管狭窄症'],94)
+  ];
+  const now=new Date();
+  const d=(off)=>{const x=new Date(now);x.setDate(x.getDate()-off);return x.toISOString().slice(0,10);};
+  let rid=0; const R=(uid,off,prog,min,bp,pulse,temp,note,status)=>{
+    rid++; const id='r'+String(rid).padStart(2,'0');
+    const hist=[{stage:'draft',by:'佐藤（担当）',at:d(off)+' 09:40',comment:'記録作成'}];
+    if(status!=='draft') hist.push({stage:'submitted',by:'佐藤（担当）',at:d(off)+' 16:20',comment:'提出'});
+    if(status==='reviewed'||status==='approved') hist.push({stage:'reviewed',by:'渡辺（リーダー）',at:d(off)+' 17:05',comment:'内容確認OK'});
+    if(status==='approved') hist.push({stage:'approved',by:'管理者',at:d(off)+' 17:30',comment:'承認'});
+    if(status==='rejected') hist.push({stage:'rejected',by:'渡辺（リーダー）',at:d(off)+' 17:10',comment:'バイタルの記載漏れ、加筆を依頼'});
+    return {id,userId:uid,date:d(off),program:prog,minutes:min,bp,pulse,temp,note,status,history:hist};
+  };
+  const records=[
+    R('u01',0,'歩行訓練',30,'148/86',78,36.5,'平行棒内歩行10m×3。ふらつき軽減、笑顔多い。','submitted'),
+    R('u03',0,'関節可動域訓練',20,'132/80',72,36.4,'右肩の可動域やや改善。痛みの訴えなし。','submitted'),
+    R('u05',0,'立ち上がり訓練',15,'150/92',84,36.8,'立ち上がり見守り。血圧やや高め、継続観察。','draft'),
+    R('u08',0,'バランス訓練',20,'128/78',70,36.3,'片脚立位5秒可能に。前回より安定。','draft'),
+    R('u02',1,'筋力トレーニング',25,'126/76',68,36.2,'下肢筋トレ意欲的。自主トレも継続中。','reviewed'),
+    R('u04',1,'歩行訓練',30,'134/82',74,36.5,'屋外歩行50m完歩。息切れなし。','reviewed'),
+    R('u07',1,'口腔体操',15,'130/79',73,36.4,'発声はっきり。むせ込み減少。','approved'),
+    R('u09',2,'関節可動域訓練',20,'138/84',76,36.6,'手指の巧緻性訓練。疲労強く途中休憩。','approved'),
+    R('u06',2,'筋力トレーニング',30,'122/74',66,36.1,'マシン負荷アップ。良好。','approved'),
+    R('u10',2,'物理療法',20,'128/77',70,36.3,'腰部温熱後にストレッチ。痛み軽減。','approved'),
+    R('u01',3,'バランス訓練',20,'146/88',80,36.6,'座位バランス訓練。体幹やや改善。','approved'),
+    R('u03',3,'歩行訓練',20,'130/80',72,36.5,'歩行器歩行15m。声かけで意欲向上。','approved'),
+    R('u05',4,'関節可動域訓練',15,'152/90',82,36.7,'下肢ROM。浮腫みあり看護へ共有。','rejected'),
+    R('u08',4,'立ち上がり訓練',20,'126/76',69,36.2,'手すり使用で5回可能。','approved'),
+    R('u04',5,'口腔体操',15,'132/80',73,36.4,'嚥下体操。表情良好。','approved')
+  ];
+  return {users,records,seededAt:new Date().toISOString()};
+}
+function resetDemo(){ modalConfirm('デモデータの初期化','現在の入力内容をすべて消去し、サンプルデータに戻します。よろしいですか？','初期化する',()=>{ state=seed(); save(); renderAll(); toast('デモデータを初期化しました','ok'); }); }
+
+/* ================= UI helpers ================= */
+function el(id){return document.getElementById(id);}
+function esc(s){return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function userById(id){return state.users.find(u=>u.id===id);}
+function toast(msg,type){ const t=document.createElement('div'); t.className='toast '+(type||''); t.innerHTML=(type==='ok'?'✅ ':type==='warn'?'⚠️ ':'💬 ')+esc(msg); el('toasts').appendChild(t); setTimeout(()=>{t.style.opacity=0;t.style.transform='translateY(10px)';setTimeout(()=>t.remove(),300);},2600); }
+
+/* ---------- modal (confirm禁止・自作) ---------- */
+function openModal(html){ el('modal').innerHTML=html; el('overlay').classList.add('open'); }
+function closeModal(){ el('overlay').classList.remove('open'); }
+function modalConfirm(title,body,okLabel,onOk,danger){
+  openModal(`<div class="mh"><h3>${esc(title)}</h3><button class="x" onclick="closeModal()">×</button></div>
+    <div class="mb"><p style="margin:0">${body}</p></div>
+    <div class="mf"><button class="btn btn-ghost" onclick="closeModal()">キャンセル</button>
+    <button class="btn btn-primary" id="mcOk">${esc(okLabel||'OK')}</button></div>`);
+  el('mcOk').onclick=()=>{ closeModal(); onOk&&onOk(); };
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+
+/* ================= Tabs ================= */
+el('tabs').addEventListener('click',e=>{const b=e.target.closest('.tab'); if(!b)return; switchView(b.dataset.v);});
+function switchView(v){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.v===v));
+  document.querySelectorAll('.view').forEach(s=>s.classList.toggle('active',s.id==='v-'+v));
+}
+function setRole(r){ ROLE=r; renderWF(); renderRecords(); toast('「'+r+'」として操作しています'); }
+
+/* ================= Renderers ================= */
+function renderAll(){ renderDash(); renderUsers(); renderRecords(); renderWF(); renderReport(); updateBadges(); el('storeInfo').textContent='STORE_KEY: '+STORE_KEY; }
+
+function updateBadges(){
+  const pend=state.records.filter(r=>r.status==='submitted'||r.status==='reviewed').length;
+  el('wfBadge').textContent=pend;
+}
+
+/* ---------- Dashboard ---------- */
+function renderDash(){
+  const today=new Date();
+  el('today').textContent=today.toLocaleDateString('ja-JP',{year:'numeric',month:'long',day:'numeric',weekday:'short'});
+  const total=state.users.length;
+  const tiers={red:0,amber:0,green:0}; state.users.forEach(u=>tiers[tier(score(u))]++);
+  const attToday=state.users.filter(u=>u.attend>=85).length;
+  const pending=state.records.filter(r=>r.status==='submitted'||r.status==='reviewed').length;
+  const avgAtt=Math.round(state.users.reduce((a,u)=>a+u.attend,0)/total);
+  el('dashSub').textContent=`登録利用者 ${total}名 ／ 本日 ${attToday}名 来所予定`;
+  el('kpis').innerHTML=[
+    kpi('本日の来所予定',attToday,'名',`稼働率 ${Math.round(attToday/total*100)}%`,'up'),
+    kpi('要見守りの方',tiers.red,'名','ケアスコア59点以下',tiers.red>2?'down':''),
+    kpi('承認待ち記録',pending,'件','あなたの対応待ちを含む',pending>0?'down':'up'),
+    kpi('平均出席率',avgAtt,'%','過去1か月','up')
+  ].join('');
+  // today list
+  const att=[...state.users].sort((a,b)=>b.attend-a.attend).slice(0,6);
+  el('attCount').textContent=`${att.length}名を表示`;
+  el('todayList').innerHTML=att.map(u=>{const s=score(u),tm=TIERMETA[tier(s)];
+    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)">
+      <span style="width:34px;height:34px;border-radius:50%;background:var(--soft);display:grid;place-items:center;font-size:.8rem">${esc(u.name.slice(0,1))}</span>
+      <div style="flex:1"><b>${esc(u.name)}</b> <span class="sub2">${esc(u.care)}</span></div>
+      <span class="tier ${tm.cls}">${tm.ico} ${s}点</span></div>`;}).join('');
+  // alerts
+  const alerts=[...state.users].map(u=>({u,s:score(u)})).filter(x=>x.s<70).sort((a,b)=>a.s-b.s);
+  el('alertList').innerHTML = alerts.length? alerts.map(x=>{const tm=TIERMETA[tier(x.s)];
+    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);cursor:pointer" onclick="userDetail('${x.u.id}')">
+      <span class="dot" style="background:${tm.c};width:10px;height:10px"></span>
+      <div style="flex:1"><b>${esc(x.u.name)}</b><div class="sub2">${esc(x.u.cond.join('・')||'—')}</div></div>
+      <span class="tier ${tm.cls}">${tm.ico} ${x.s}点</span></div>`;}).join('') : '<div class="empty">要フォロー対象はいません 🌿</div>';
+  aiDash(tiers,pending,alerts);
+}
+function kpi(lab,num,unit,sub,dir){return `<div class="card kpi"><div class="lab">${lab}</div><div class="num">${num}<small>${unit||''}</small></div><div class="sub ${dir||''}">${sub}</div></div>`;}
+
+function aiDash(tiers,pending,alerts){
+  const worst=alerts[0];
+  let lines=[];
+  if(tiers.red>0) lines.push(`<b>要見守り ${tiers.red}名</b>。中でも${worst?`<b>${esc(worst.u.name)}様（${worst.s}点）</b>`:''}は優先的な声かけをおすすめします。`);
+  if(pending>0) lines.push(`承認待ちの記録が <b>${pending}件</b>あります。「承認ワークフロー」からご確認ください。`);
+  lines.push(`本日の来所予定者のうち、血圧が高めの方が記録に見られます。水分補給と休憩の声かけを。`);
+  el('ai-dash').innerHTML=aiBox('本日の申し送りサマリー',`<ul>${lines.map(l=>`<li>${l}</li>`).join('')}</ul>`);
+}
+function aiBox(title,body){return `<div class="bot">🤖</div><div><h4>AIアシスタントからの提案 <span class="tag">AI</span></h4><div style="font-weight:600;margin-bottom:2px">${title}</div>${body}</div>`;}
+
+/* ---------- Users ---------- */
+function renderUsers(){
+  const q=(el('uSearch')?.value||'').trim(); const ft=el('uTier')?.value||''; const sort=el('uSort')?.value||'score';
+  let list=state.users.map(u=>({u,s:score(u),t:tier(score(u))}));
+  if(q) list=list.filter(x=>x.u.name.includes(q)||x.u.kana.includes(q)||x.u.cond.some(c=>c.includes(q))||x.u.care.includes(q));
+  if(ft) list=list.filter(x=>x.t===ft);
+  list.sort((a,b)=> sort==='name'?a.u.kana.localeCompare(b.u.kana,'ja'): sort==='scoreDesc'?b.s-a.s : a.s-b.s);
+  const rows=list.map(x=>{const tm=TIERMETA[x.t];
+    return `<tr onclick="userDetail('${x.u.id}')">
+      <td class="namecell">${esc(x.u.name)}<div class="sub2">${esc(x.u.kana)}・${x.u.age}歳・${esc(x.u.gender)}</div></td>
+      <td>${esc(x.u.care)}</td>
+      <td>${x.u.cond.map(c=>`<span class="pill">${esc(c)}</span>`).join('')||'<span class="sub2">—</span>'}</td>
+      <td><div style="display:flex;align-items:center;gap:10px"><div class="score-bar" style="flex:1"><i style="width:${x.s}%;background:${tm.c}"></i></div><b>${x.s}</b></div></td>
+      <td><span class="tier ${tm.cls}">${tm.ico} ${tm.n}</span></td>
+      <td>${x.u.attend}%</td>
+    </tr>`;}).join('');
+  el('userTable').innerHTML=`<table><thead><tr><th>氏名</th><th>介護度</th><th>主な状態</th><th>ケアスコア</th><th>層</th><th>出席率</th></tr></thead><tbody>${rows||'<tr><td colspan=6 class=empty>該当者なし</td></tr>'}</tbody></table>`;
+  aiUsers();
+}
+function aiUsers(){
+  const arr=state.users.map(u=>({u,s:score(u)}));
+  const avg=Math.round(arr.reduce((a,x)=>a+x.s,0)/arr.length);
+  const low=arr.filter(x=>x.s<60).length, up=arr.filter(x=>x.s>=80).length;
+  el('ai-users').innerHTML=aiBox('利用者全体のケアスコア傾向',
+    `<p>平均ケアスコアは <b>${avg}点</b>。安定層 <b>${up}名</b>／要見守り層 <b>${low}名</b>。要見守り層は<b>個別機能訓練計画の見直し</b>と<b>ご家族への状況共有</b>を推奨します。転倒歴のある方は環境調整もご検討ください。</p>`);
+}
+
+function userDetail(id){
+  const u=userById(id); if(!u)return; const s=score(u),tm=TIERMETA[tier(s)];
+  const recs=state.records.filter(r=>r.userId===id).sort((a,b)=>b.date.localeCompare(a.date));
+  openModal(`<div class="mh"><h3>${esc(u.name)} 様 <span class="tier ${tm.cls}" style="margin-left:6px">${tm.ico} ${tm.n} ${s}点</span></h3><button class="x" onclick="closeModal()">×</button></div>
+  <div class="mb">
+    <dl class="kv">
+      <dt>ふりがな</dt><dd>${esc(u.kana)}</dd>
+      <dt>年齢・性別</dt><dd>${u.age}歳・${esc(u.gender)}</dd>
+      <dt>介護度</dt><dd>${esc(u.care)}</dd>
+      <dt>主な状態</dt><dd>${u.cond.map(c=>`<span class="pill">${esc(c)}</span>`).join('')||'—'}</dd>
+      <dt>出席率</dt><dd>${u.attend}%</dd>
+    </dl>
+    <h4 style="margin:16px 0 6px;font-size:.95rem">ケアスコア内訳（合計 ${s}/100）</h4>
+    ${scoreRow('ADL・身体機能',u.adl,40)}${scoreRow('認知機能',u.cog,30)}${scoreRow('健康安定度',u.stab,30)}
+    <div class="ai" style="margin-top:16px">${aiBox('この利用者へのケア提案',`<p>${carePlan(u,s)}</p>`)}</div>
+    <h4 style="margin:16px 0 6px;font-size:.95rem">最近のリハビリ記録（${recs.length}件）</h4>
+    ${recs.slice(0,4).map(r=>`<div class="wf"><div class="top"><span>${r.date}・${esc(r.program)}・${r.minutes}分</span><span class="chip ${STAGES[r.status].chip}">${STAGES[r.status].label}</span></div><div style="font-size:.9rem;margin-top:4px">${esc(r.note)}</div></div>`).join('')||'<div class="empty">記録なし</div>'}
+  </div>
+  <div class="mf"><button class="btn btn-ghost" onclick="closeModal()">閉じる</button><button class="btn btn-primary" onclick="closeModal();recordForm('${u.id}')">＋ この方の記録を作成</button></div>`);
+}
+function scoreRow(lab,val,max){const pct=Math.round(val/max*100);const c=pct>=75?'var(--green)':pct>=50?'var(--amber)':'var(--red)';
+  return `<div style="display:grid;grid-template-columns:130px 1fr 60px;align-items:center;gap:10px;margin:6px 0"><span class="sub2">${lab}</span><div class="score-bar"><i style="width:${pct}%;background:${c}"></i></div><b style="text-align:right">${val}/${max}</b></div>`;}
+function carePlan(u,s){
+  if(s<60) return `自立度が低下しています。<b>転倒予防を最優先</b>に、立ち上がり・バランス訓練を短時間頻回で。看護職と連携し体調変化を毎回確認、ご家族へ週次で状況共有を。`;
+  if(s<80) return `概ね安定していますが、<b>現状維持のための継続訓練</b>が重要です。${u.cond[0]||'既往'}に配慮し、意欲を引き出すレクを組み合わせましょう。`;
+  return `自立度は良好です。<b>役割づくりや趣味活動</b>を通じて社会参加を促し、機能の維持・向上を目指しましょう。`;
+}
+
+/* ---------- Records ---------- */
+function renderRecords(){
+  const q=(el('rSearch')?.value||'').trim(); const fs=el('rStatus')?.value||'';
+  let list=[...state.records].sort((a,b)=>b.date.localeCompare(a.date)||b.id.localeCompare(a.id));
+  if(fs) list=list.filter(r=>r.status===fs);
+  if(q) list=list.filter(r=>{const u=userById(r.userId); return (u&&u.name.includes(q))||r.program.includes(q);});
+  const rows=list.map(r=>{const u=userById(r.userId);const st=STAGES[r.status];
+    return `<tr onclick="recordDetail('${r.id}')">
+      <td>${r.date}</td>
+      <td class="namecell">${esc(u?u.name:'—')}</td>
+      <td>${esc(r.program)}<div class="sub2">${r.minutes}分</div></td>
+      <td>${esc(r.bp)}<div class="sub2">脈${r.pulse}・${r.temp}℃</div></td>
+      <td style="max-width:260px"><div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.note)}</div></td>
+      <td><span class="chip ${st.chip}">${st.label}</span></td>
+    </tr>`;}).join('');
+  el('recordTable').innerHTML=`<table><thead><tr><th>実施日</th><th>利用者</th><th>種目</th><th>バイタル</th><th>気づき</th><th>状態</th></tr></thead><tbody>${rows||'<tr><td colspan=6 class=empty>該当する記録なし</td></tr>'}</tbody></table>`;
+  aiRecords();
+}
+function aiRecords(){
+  const draft=state.records.filter(r=>r.status==='draft').length;
+  const high=state.records.filter(r=>{const sys=parseInt(r.bp);return sys>=150;});
+  el('ai-records').innerHTML=aiBox('記録の品質チェック',
+    `<ul><li>下書きのままの記録が <b>${draft}件</b>あります。当日中の提出を推奨します。</li>
+    <li>収縮期血圧150以上の記録が <b>${high.length}件</b>。${high.length?`（${esc(userById(high[0].userId)?.name||'')}様 ほか）`:''}継続観察と看護職への共有を。</li>
+    <li>「気づき」欄は具体的な数値・回数を書くと、経過比較がしやすくなります。</li></ul>`);
+}
+function recordDetail(id){
+  const r=state.records.find(x=>x.id===id); if(!r)return; const u=userById(r.userId); const st=STAGES[r.status];
+  openModal(`<div class="mh"><h3>リハビリ記録 <span class="chip ${st.chip}" style="margin-left:6px">${st.label}</span></h3><button class="x" onclick="closeModal()">×</button></div>
+  <div class="mb">
+    <dl class="kv"><dt>利用者</dt><dd>${esc(u?u.name:'')}（${esc(u?u.care:'')}）</dt><dt>実施日</dt><dd>${r.date}</dd>
+    <dt>種目 / 時間</dt><dd>${esc(r.program)} ／ ${r.minutes}分</dd>
+    <dt>バイタル</dt><dd>血圧 ${esc(r.bp)}・脈拍 ${r.pulse}・体温 ${r.temp}℃</dd></dl>
+    <div class="field" style="margin-top:12px"><label>気づき・経過</label><div style="background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:10px 12px">${esc(r.note)}</div></div>
+    <h4 style="margin:14px 0 4px;font-size:.95rem">承認の履歴（引継の記録）</h4>
+    <ul class="tl">${r.history.map(h=>`<li><b>${STAGES[h.stage].label}</b>：${esc(h.comment)}<div class="t">${esc(h.by)} ／ ${esc(h.at)}</div></li>`).join('')}</ul>
+  </div>
+  <div class="mf"><button class="btn btn-ghost" onclick="closeModal()">閉じる</button>${wfActionButtons(r,true)}</div>`);
+}
+
+/* ---------- Record form ---------- */
+function recordForm(preUser){
+  const opts=state.users.map(u=>`<option value="${u.id}" ${u.id===preUser?'selected':''}>${esc(u.name)}（${esc(u.care)}）</option>`).join('');
+  const progOpts=PROGRAMS.map(p=>`<option>${p}</option>`).join('');
+  openModal(`<div class="mh"><h3>リハビリ記録の作成</h3><button class="x" onclick="closeModal()">×</button></div>
+  <div class="mb">
+    <div class="ai" style="margin-bottom:14px">${aiBox('記録アシスト',`<p>種目を選ぶと定型文を提案します。数値・回数を追記すると経過比較に役立ちます。</p>`)}</div>
+    <div class="grid2">
+      <div class="field"><label>利用者</label><select class="select" id="f_user">${opts}</select></div>
+      <div class="field"><label>実施日</label><input class="input" type="date" id="f_date" value="${new Date().toISOString().slice(0,10)}"></div>
+      <div class="field"><label>種目</label><select class="select" id="f_prog" onchange="suggestNote()">${progOpts}</select></div>
+      <div class="field"><label>実施時間（分）</label><input class="input" type="number" id="f_min" value="20" min="5" max="120"></div>
+      <div class="field"><label>血圧</label><input class="input" id="f_bp" value="130/80"></div>
+      <div class="field"><label>脈拍 / 体温</label><div style="display:flex;gap:8px"><input class="input" id="f_pulse" value="72" style="min-width:0"><input class="input" id="f_temp" value="36.5" style="min-width:0"></div></div>
+    </div>
+    <div class="field"><label>気づき・経過 <button class="btn btn-ghost btn-sm" style="float:right" onclick="suggestNote()">🤖 定型文を挿入</button></label><textarea id="f_note" rows="3" placeholder="訓練内容・反応・注意点など"></textarea></div>
+  </div>
+  <div class="mf"><button class="btn btn-ghost" onclick="closeModal()">キャンセル</button>
+    <button class="btn btn-ghost" onclick="saveRecord('draft')">下書き保存</button>
+    <button class="btn btn-primary" onclick="saveRecord('submitted')">提出する</button></div>`);
+}
+function suggestNote(){
+  const p=el('f_prog').value;
+  const map={'歩行訓練':'平行棒内歩行 ○m×○セット実施。ふらつき（軽減／変化なし）。',
+    '筋力トレーニング':'下肢筋力トレーニングを○回×○セット。疲労度普通、意欲的。',
+    'バランス訓練':'片脚立位○秒・座位バランス訓練を実施。安定性（向上／維持）。',
+    '関節可動域訓練':'○関節のROM訓練。可動域（拡大／維持）、疼痛の訴えなし。',
+    '立ち上がり訓練':'手すり使用で立ち上がり○回。見守りレベル。',
+    '口腔体操':'発声・嚥下体操を実施。むせ込み（減少／なし）。',
+    '物理療法':'温熱療法後にストレッチ。疼痛（軽減）。'};
+  el('f_note').value=map[p]||'';
+}
+function saveRecord(status){
+  const uid=el('f_user').value; const u=userById(uid);
+  const rec={id:'r'+Date.now().toString().slice(-6),userId:uid,date:el('f_date').value,program:el('f_prog').value,
+    minutes:+el('f_min').value,bp:el('f_bp').value,pulse:+el('f_pulse').value,temp:el('f_temp').value,note:el('f_note').value.trim()||'（記載なし）',status,
+    history:[{stage:'draft',by:ROLE+'（'+roleName()+'）',at:nowStr(),comment:'記録作成'}]};
+  if(status==='submitted') rec.history.push({stage:'submitted',by:ROLE+'（'+roleName()+'）',at:nowStr(),comment:'提出'});
+  state.records.unshift(rec); save(); closeModal(); renderAll();
+  toast(status==='submitted'?'記録を提出しました。リーダー確認へ回りました':'下書きを保存しました','ok');
+  if(status==='submitted') switchView('wf');
+}
+function roleName(){return {'担当':'介護職','リーダー':'機能訓練指導員','管理者':'施設長'}[ROLE];}
+function nowStr(){return new Date().toLocaleString('ja-JP',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});}
+
+/* ---------- Workflow (段階ゲート引継) ---------- */
+function renderWF(){
+  const cols=[['draft','提出待ち'],['submitted','確認待ち'],['reviewed','承認待ち'],['approved','完了']];
+  el('kanban').innerHTML=cols.map(([k,label])=>{
+    const items=state.records.filter(r=>r.status===k || (k==='draft'&&r.status==='rejected'));
+    return `<div class="col"><h4>${label} <span class="cnt">${items.length}</span></h4>
+      ${items.map(r=>wfCard(r)).join('')||'<div class="empty" style="padding:14px">なし</div>'}</div>`;
+  }).join('');
+  aiWF();
+}
+function wfCard(r){
+  const u=userById(r.userId); const st=STAGES[r.status];
+  return `<div class="wf"><div class="top"><span>${r.date}・${esc(r.program)}</span><span class="chip ${st.chip}">${st.label}</span></div>
+    <div class="nm">${esc(u?u.name:'')}</div>
+    <div style="font-size:.83rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.note)}</div>
+    <div class="act">${wfActionButtons(r)}</div></div>`;
+}
+function wfActionButtons(r,inModal){
+  const st=STAGES[r.status];
+  const view=`<button class="btn btn-ghost btn-sm" onclick="${inModal?'closeModal();':''}recordDetail('${r.id}')">詳細</button>`;
+  if(!st.next){ // approved or rejected
+    if(r.status==='rejected') return (inModal?'':view)+`<button class="btn btn-primary btn-sm" onclick="reopen('${r.id}')">修正して再提出</button>`;
+    return inModal?'<button class="btn btn-ghost" onclick="closeModal()">閉じる</button>':view;
+  }
+  const canAct = ROLE===st.role;
+  if(!canAct) return (inModal?'':view)+`<span class="locked">🔒 ${st.role}が${st.act}権限を持ちます</span>`;
+  let btns = (inModal?'':view);
+  btns += `<button class="btn btn-primary btn-sm" onclick="advance('${r.id}')">✓ ${st.act}</button>`;
+  if(r.status!=='draft') btns += `<button class="btn btn-ghost btn-sm" onclick="reject('${r.id}')">差し戻し</button>`;
+  return btns;
+}
+function advance(id){
+  const r=state.records.find(x=>x.id===id); const st=STAGES[r.status];
+  modalConfirm(st.act+'の確認',`<b>${esc(userById(r.userId)?.name)}様</b>（${r.date}・${esc(r.program)}）の記録を「<b>${STAGES[st.next].label}</b>」に進めます。<br>コメントがあれば入力してください。`+commentField(),
+    st.act,()=>{
+      const c=el('_cmt')?el('_cmt').value.trim():'';
+      r.status=st.next;
+      r.history.push({stage:st.next,by:ROLE+'（'+roleName()+'）',at:nowStr(),comment:c||st.act});
+      save(); renderAll();
+      toast(`${STAGES[st.next].label}に進めました`+(st.next==='approved'?' 🎉 承認完了':''),'ok');
+    });
+}
+function reject(id){
+  const r=state.records.find(x=>x.id===id);
+  modalConfirm('差し戻しの確認',`この記録を担当者へ差し戻します。理由を入力してください。`+commentField(true),'差し戻す',()=>{
+    const c=el('_cmt')?el('_cmt').value.trim():'';
+    if(!c){ toast('差し戻し理由を入力してください','warn'); return reject(id); }
+    r.status='rejected';
+    r.history.push({stage:'rejected',by:ROLE+'（'+roleName()+'）',at:nowStr(),comment:c});
+    save(); renderAll(); toast('差し戻しました','warn');
+  });
+}
+function reopen(id){
+  const r=state.records.find(x=>x.id===id);
+  r.status='draft';
+  r.history.push({stage:'draft',by:ROLE+'（'+roleName()+'）',at:nowStr(),comment:'修正・再作成'});
+  save(); renderAll(); toast('下書きに戻しました。修正後に再提出できます');
+}
+function commentField(req){return `<div class="field" style="margin-top:12px"><label>コメント${req?'（必須）':'（任意）'}</label><textarea id="_cmt" rows="2" placeholder="申し送り事項など"></textarea></div>`;}
+function aiWF(){
+  const pend=state.records.filter(r=>r.status==='submitted'||r.status==='reviewed');
+  const mine=pend.filter(r=>STAGES[r.status].role===ROLE);
+  el('ai-wf').innerHTML=aiBox('承認フローの状況',
+    `<p>承認待ちは全体で <b>${pend.length}件</b>。うち<b>「${ROLE}」のあなたが対応すべき記録は ${mine.length}件</b>です。${mine.length?'早めのご確認をおすすめします。':'現在あなたの対応待ちはありません。'} 役割を切り替えると操作できる範囲が変わります（段階ゲート）。</p>`);
+}
+
+/* ---------- User form ---------- */
+function userForm(){
+  openModal(`<div class="mh"><h3>利用者の登録</h3><button class="x" onclick="closeModal()">×</button></div>
+  <div class="mb"><div class="grid2">
+    <div class="field"><label>氏名</label><input class="input" id="nu_name" placeholder="例：山田 太郎"></div>
+    <div class="field"><label>ふりがな</label><input class="input" id="nu_kana" placeholder="やまだ たろう"></div>
+    <div class="field"><label>年齢</label><input class="input" type="number" id="nu_age" value="80"></div>
+    <div class="field"><label>性別</label><select class="select" id="nu_g"><option>女</option><option>男</option></select></div>
+    <div class="field"><label>介護度</label><select class="select" id="nu_care"><option>要支援1</option><option>要支援2</option><option selected>要介護1</option><option>要介護2</option><option>要介護3</option><option>要介護4</option><option>要介護5</option></select></div>
+    <div class="field"><label>出席率(%)</label><input class="input" type="number" id="nu_att" value="90"></div>
+  </div>
+  <p style="font-size:.85rem;color:var(--muted);margin:4px 0 10px">ケアスコアは初期値（ADL 25/認知 20/安定 18）で登録され、あとで調整できます。</p>
+  <div class="field"><label>主な状態（カンマ区切り）</label><input class="input" id="nu_cond" placeholder="高血圧, 変形性膝関節症" style="width:100%"></div>
+  </div>
+  <div class="mf"><button class="btn btn-ghost" onclick="closeModal()">キャンセル</button><button class="btn btn-primary" onclick="saveUser()">登録する</button></div>`);
+}
+function saveUser(){
+  const name=el('nu_name').value.trim(); if(!name){toast('氏名を入力してください','warn');return;}
+  const u={id:'u'+Date.now().toString().slice(-6),name,kana:el('nu_kana').value.trim(),age:+el('nu_age').value,gender:el('nu_g').value,
+    care:el('nu_care').value,adl:25,cog:20,stab:18,cond:el('nu_cond').value.split(/[,、]/).map(s=>s.trim()).filter(Boolean),attend:+el('nu_att').value,memo:''};
+  state.users.push(u); save(); closeModal(); renderAll(); switchView('users'); toast(name+'様を登録しました','ok');
+}
+
+/* ---------- Report ---------- */
+function renderReport(){
+  const tiers={red:0,amber:0,green:0}; state.users.forEach(u=>tiers[tier(score(u))]++);
+  const total=state.users.length;
+  el('distChart').innerHTML=[['red','要見守り'],['amber','経過観察'],['green','安定']].map(([k,n])=>{
+    const v=tiers[k],pct=Math.round(v/total*100);
+    return `<div class="row"><span>${TIERMETA[k].ico} ${n}</span><div class="track"><i style="width:${pct}%;background:${TIERMETA[k].c}"></i></div><b>${v}名</b></div>`;}).join('');
+  // month chart (rehab count by recent months from records + synthetic)
+  const months=lastMonths(6);
+  const counts=months.map(m=>state.records.filter(r=>r.date.slice(0,7)===m.key).length);
+  // add synthetic base so chart looks populated
+  const base=[38,42,45,40,48,0]; const data=counts.map((c,i)=> i===counts.length-1? Math.max(c,12)+base[i] : base[i]+c);
+  const max=Math.max(...data,1);
+  el('monthChart').innerHTML=months.map((m,i)=>{const h=Math.round(data[i]/max*100);
+    return `<div class="b"><div class="v">${data[i]}</div><div class="bar" style="height:${h}%;background:${i===months.length-1?'var(--accent)':'#F0C98A'}"></div><div class="x">${m.label}</div></div>`;}).join('');
+  // program summary
+  const byProg={}; state.records.filter(r=>r.status==='approved').forEach(r=>byProg[r.program]=(byProg[r.program]||0)+1);
+  const prog=Object.entries(byProg).sort((a,b)=>b[1]-a[1]); const pmax=Math.max(...prog.map(p=>p[1]),1);
+  el('programChart').innerHTML= prog.length? `<div class="dist">${prog.map(([p,c])=>`<div class="row"><span>${esc(p)}</span><div class="track"><i style="width:${Math.round(c/pmax*100)}%;background:var(--leaf)"></i></div><b>${c}件</b></div>`).join('')}</div>` : '<div class="empty">承認済みの記録がありません</div>';
+  aiReport(tiers);
+}
+function lastMonths(n){const arr=[];const d=new Date();for(let i=n-1;i>=0;i--){const x=new Date(d.getFullYear(),d.getMonth()-i,1);arr.push({key:x.toISOString().slice(0,7),label:(x.getMonth()+1)+'月'});}return arr;}
+function aiReport(tiers){
+  el('ai-report').innerHTML=aiBox('データからの改善インサイト',
+    `<ul><li>安定層が全体の <b>${Math.round(tiers.green/state.users.length*100)}%</b>。個別機能訓練の効果が表れています。</li>
+    <li>直近月のリハビリ実施が増加傾向。<b>歩行・筋力訓練</b>の比率が高く、転倒予防に寄与しています。</li>
+    <li>要見守り層 <b>${tiers.red}名</b>には、月次で計画を見直し、ご家族面談の頻度を上げることを提案します。</li></ul>`);
+}
+
+/* ---------- init ---------- */
+renderAll();
+</script>
+</body>
+</html>

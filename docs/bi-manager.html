@@ -1,0 +1,998 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BIマネージャー ─ リハビリデイ BI評価＆加算見込み管理</title>
+<style>
+  :root{
+    --bg:#f4f7fb; --panel:#ffffff; --ink:#1f2937; --sub:#64748b; --line:#e5e9f0;
+    --brand:#2563eb; --brand-soft:#eff5ff; --ok:#16a34a; --ok-soft:#e9f8ef;
+    --warn:#d97706; --warn-soft:#fff5e6; --bad:#dc2626; --bad-soft:#fdeceb;
+    --grape:#7c3aed; --grape-soft:#f2ecfe; --chip:#f1f5f9;
+    --shadow:0 1px 2px rgba(16,24,40,.04),0 8px 24px rgba(16,24,40,.06);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{font-family:"Segoe UI","Hiragino Kaku Gothic ProN","Yu Gothic UI",Meiryo,sans-serif;
+    background:var(--bg); color:var(--ink); font-size:14px; line-height:1.6; -webkit-font-smoothing:antialiased}
+  a{color:var(--brand)}
+  /* ---- top bar ---- */
+  header{position:sticky;top:0;z-index:30;background:rgba(255,255,255,.92);backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--line)}
+  .bar{max-width:1180px;margin:0 auto;padding:10px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .logo{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.2px}
+  .logo .mark{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,#2563eb,#7c3aed);
+    display:grid;place-items:center;color:#fff;font-size:16px}
+  .logo small{display:block;font-weight:600;color:var(--sub);font-size:11px;letter-spacing:0}
+  .grow{flex:1}
+  .role{display:flex;align-items:center;gap:8px;background:var(--chip);border:1px solid var(--line);
+    padding:5px 10px;border-radius:10px}
+  .role label{font-size:12px;color:var(--sub)}
+  .role select{border:0;background:transparent;font:inherit;font-weight:700;color:var(--ink);outline:none;cursor:pointer}
+  /* ---- tabs ---- */
+  nav{max-width:1180px;margin:0 auto;padding:0 12px;display:flex;gap:4px;overflow-x:auto}
+  nav button{border:0;background:transparent;padding:12px 14px;font:inherit;font-weight:700;color:var(--sub);
+    cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;border-radius:8px 8px 0 0}
+  nav button:hover{color:var(--ink);background:#fafbfe}
+  nav button.on{color:var(--brand);border-bottom-color:var(--brand)}
+  nav button .n{display:inline-block;min-width:18px;padding:0 5px;margin-left:6px;border-radius:9px;
+    background:var(--chip);color:var(--sub);font-size:11px;font-weight:800}
+  nav button.on .n{background:var(--brand-soft);color:var(--brand)}
+  /* ---- layout ---- */
+  main{max-width:1180px;margin:0 auto;padding:20px}
+  .scope{background:linear-gradient(90deg,#fff8ec,#fffdf8);border:1px solid #f3e2bf;border-radius:12px;
+    padding:10px 14px;font-size:12.5px;color:#7a5a12;margin-bottom:16px;display:flex;gap:10px;align-items:flex-start}
+  .scope b{color:#8a5a00}
+  h2.sec{font-size:16px;margin:2px 0 12px}
+  .sub{color:var(--sub);font-size:12.5px}
+  /* AI panel */
+  .ai{border:1px solid #dbe6ff;background:linear-gradient(180deg,#f7faff,#ffffff);border-radius:14px;
+    padding:14px 16px;margin-bottom:18px;box-shadow:var(--shadow)}
+  .ai .hd{display:flex;align-items:center;gap:8px;font-weight:800;color:#1d4ed8;margin-bottom:6px}
+  .ai .hd .bot{width:26px;height:26px;border-radius:8px;background:#e6efff;display:grid;place-items:center;font-size:15px}
+  .ai .hd .tag{margin-left:auto;font-size:10.5px;font-weight:800;color:#6d8fd6;background:#eef4ff;
+    border:1px solid #dbe6ff;padding:2px 8px;border-radius:20px}
+  .ai ul{margin:6px 0 0;padding-left:18px}
+  .ai li{margin:3px 0}
+  .ai .big{font-size:13.5px}
+  /* cards / kpi */
+  .grid{display:grid;gap:14px}
+  .k4{grid-template-columns:repeat(4,1fr)}
+  .k3{grid-template-columns:repeat(3,1fr)}
+  .k2{grid-template-columns:repeat(2,1fr)}
+  @media(max-width:900px){.k4,.k3{grid-template-columns:repeat(2,1fr)}.k2{grid-template-columns:1fr}}
+  @media(max-width:560px){.k4,.k3,.k2{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:var(--shadow)}
+  .kpi .lab{font-size:12px;color:var(--sub);font-weight:700}
+  .kpi .val{font-size:30px;font-weight:800;letter-spacing:-.5px;margin-top:2px}
+  .kpi .val small{font-size:13px;color:var(--sub);font-weight:700}
+  .kpi .foot{font-size:11.5px;color:var(--sub);margin-top:4px}
+  /* badges / chips */
+  .badge{display:inline-flex;align-items:center;gap:5px;font-weight:800;font-size:12px;padding:3px 10px;border-radius:20px}
+  .b-ok{background:var(--ok-soft);color:#0f7a37}
+  .b-warn{background:var(--warn-soft);color:#a35a06}
+  .b-bad{background:var(--bad-soft);color:#b42318}
+  .b-brand{background:var(--brand-soft);color:#1d4ed8}
+  .b-grape{background:var(--grape-soft);color:#6d28d9}
+  .b-mut{background:var(--chip);color:var(--sub)}
+  .chip{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:8px;background:var(--chip);color:var(--sub)}
+  /* table */
+  .tblwrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:#fff;box-shadow:var(--shadow)}
+  table{border-collapse:collapse;width:100%;min-width:720px;font-size:13px}
+  th,td{padding:11px 12px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+  th{background:#fbfcfe;color:var(--sub);font-size:11.5px;font-weight:800;position:sticky;top:0}
+  tbody tr{cursor:pointer}
+  tbody tr:hover{background:#f8faff}
+  td.num{text-align:right;font-variant-numeric:tabular-nums}
+  .delta-up{color:var(--ok);font-weight:800}
+  .delta-dn{color:var(--bad);font-weight:800}
+  .delta-0{color:var(--sub);font-weight:800}
+  .avatar{width:28px;height:28px;border-radius:50%;display:inline-grid;place-items:center;color:#fff;font-weight:800;font-size:12px;margin-right:8px;vertical-align:middle}
+  /* toolbar */
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+  .toolbar input,.toolbar select{padding:8px 11px;border:1px solid var(--line);border-radius:10px;font:inherit;background:#fff}
+  .toolbar input{min-width:200px}
+  .btn{border:0;border-radius:10px;padding:9px 14px;font:inherit;font-weight:800;cursor:pointer}
+  .btn-primary{background:var(--brand);color:#fff}
+  .btn-primary:hover{filter:brightness(1.06)}
+  .btn-ghost{background:#fff;border:1px solid var(--line);color:var(--ink)}
+  .btn-ghost:hover{background:#f6f8fc}
+  .btn-ok{background:var(--ok);color:#fff}
+  .btn-warn{background:var(--warn);color:#fff}
+  .btn-bad{background:#fff;border:1px solid #f2c4c0;color:var(--bad)}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .btn-sm{padding:6px 11px;font-size:12.5px}
+  /* progress */
+  .bar-track{height:8px;border-radius:6px;background:var(--chip);overflow:hidden;min-width:90px}
+  .bar-fill{height:100%;border-radius:6px;background:linear-gradient(90deg,#2563eb,#7c3aed)}
+  /* modal */
+  .overlay{position:fixed;inset:0;background:rgba(15,23,42,.42);backdrop-filter:blur(2px);z-index:50;
+    display:none;align-items:flex-start;justify-content:center;padding:32px 16px;overflow:auto}
+  .overlay.on{display:flex}
+  .modal{background:#fff;border-radius:16px;width:100%;max-width:720px;box-shadow:0 24px 60px rgba(16,24,40,.24);
+    animation:pop .16s ease}
+  .modal.sm{max-width:440px}
+  @keyframes pop{from{transform:translateY(8px) scale(.98);opacity:0}to{transform:none;opacity:1}}
+  .modal .mhd{display:flex;align-items:center;gap:10px;padding:16px 20px;border-bottom:1px solid var(--line)}
+  .modal .mhd h3{margin:0;font-size:16px}
+  .modal .mhd .x{margin-left:auto;border:0;background:var(--chip);width:30px;height:30px;border-radius:9px;cursor:pointer;font-size:16px;color:var(--sub)}
+  .modal .mbd{padding:18px 20px;max-height:64vh;overflow:auto}
+  .modal .mft{padding:14px 20px;border-top:1px solid var(--line);display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+  /* form */
+  .frow{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}
+  @media(max-width:560px){.frow{grid-template-columns:1fr}}
+  .fld label{display:block;font-size:12px;font-weight:700;color:var(--sub);margin-bottom:4px}
+  .fld select,.fld input,.fld textarea{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:10px;font:inherit;background:#fff}
+  .items{display:grid;gap:10px}
+  .item{border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+  .item .top{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  .item .top b{font-size:13.5px}
+  .item .top .mx{margin-left:auto;font-size:11px;color:var(--sub);font-weight:700}
+  .segs{display:flex;gap:6px;flex-wrap:wrap}
+  .seg{border:1px solid var(--line);background:#fff;border-radius:9px;padding:7px 10px;cursor:pointer;font-size:12px;
+    display:flex;flex-direction:column;gap:1px;min-width:74px}
+  .seg .pt{font-weight:800}
+  .seg .ds{font-size:10.5px;color:var(--sub);white-space:normal}
+  .seg.on{border-color:var(--brand);background:var(--brand-soft);box-shadow:inset 0 0 0 1px var(--brand)}
+  .seg .lay{font-size:10px;font-weight:800}
+  .livebar{position:sticky;bottom:0;background:linear-gradient(0deg,#fff,#fff 60%,rgba(255,255,255,0));
+    padding-top:8px;display:flex;align-items:center;gap:12px;margin-top:6px}
+  .livebar .tot{font-size:24px;font-weight:800}
+  /* detail */
+  .kv{display:grid;grid-template-columns:120px 1fr;gap:6px 12px;font-size:13px}
+  .kv .k{color:var(--sub);font-weight:700}
+  .itemtable{width:100%;min-width:0;font-size:12.5px;margin-top:4px}
+  .itemtable td,.itemtable th{padding:6px 8px;white-space:normal}
+  .timeline{border-left:2px solid var(--line);margin-left:6px;padding-left:14px}
+  .tl{position:relative;margin-bottom:10px}
+  .tl:before{content:"";position:absolute;left:-21px;top:4px;width:10px;height:10px;border-radius:50%;background:var(--brand)}
+  .tl .w{font-size:11.5px;color:var(--sub)}
+  /* stage rail */
+  .rail{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:2px 0 12px}
+  .rail .st{display:flex;align-items:center;gap:6px}
+  .rail .dot{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:800;
+    background:var(--chip);color:var(--sub);border:2px solid var(--line)}
+  .rail .st.done .dot{background:var(--ok);color:#fff;border-color:var(--ok)}
+  .rail .st.cur .dot{background:var(--brand);color:#fff;border-color:var(--brand);box-shadow:0 0 0 4px var(--brand-soft)}
+  .rail .st .nm{font-size:11.5px;font-weight:700;color:var(--sub)}
+  .rail .st.cur .nm,.rail .st.done .nm{color:var(--ink)}
+  .rail .arw{color:var(--line);font-weight:800}
+  /* schedule alert rows */
+  .alert{display:flex;gap:12px;align-items:center;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:#fff;margin-bottom:8px;cursor:pointer}
+  .alert:hover{background:#f8faff}
+  .alert .ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-size:17px;flex:none}
+  .a-bad .ic{background:var(--bad-soft)} .a-warn .ic{background:var(--warn-soft)} .a-info .ic{background:var(--brand-soft)}
+  .alert .m{flex:1;min-width:0}
+  .alert .m b{font-size:13.5px}
+  .alert .m .d{font-size:12px;color:var(--sub)}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);opacity:0;
+    background:#111827;color:#fff;padding:11px 18px;border-radius:12px;font-weight:700;font-size:13px;z-index:80;
+    transition:.25s;box-shadow:0 12px 30px rgba(0,0,0,.25);pointer-events:none}
+  .toast.on{opacity:1;transform:translateX(-50%)}
+  .foot{max-width:1180px;margin:8px auto 40px;padding:0 20px;color:var(--sub);font-size:11.5px}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--sub);margin:6px 2px 0}
+  .miss{color:var(--sub)}
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <div class="logo"><span class="mark">📋</span><div>BIマネージャー<small>リハビリデイ｜BI評価＆加算見込み管理（モック）</small></div></div>
+    <div class="grow"></div>
+    <div class="role">
+      <label>操作ロール</label>
+      <select id="roleSel">
+        <option value="staff">担当（機能訓練指導員）</option>
+        <option value="leader">リーダー</option>
+        <option value="manager">管理者</option>
+      </select>
+    </div>
+  </div>
+  <nav id="nav"></nav>
+</header>
+
+<main id="app"></main>
+
+<div class="foot">
+  BIマネージャー（独立版・単一HTML） ｜ データはこのブラウザ内（localStorage）にのみ保存され外部送信はありません ｜ 保存キー: <code id="skLabel"></code>
+  ｜ <a href="#" id="resetLink">デモデータを初期化</a>
+</div>
+
+<div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================================
+   BIマネージャー  ─ 独立版・単一HTMLモック（localStorage / 日本語 / 白基調）
+   ※ 他アプリ非依存。利用者・承認ワークフロー・保存領域をすべて本アプリ内に自己完結。
+   -------------------------------------------------------------------------
+   ★ このツールの立ち位置（画面にも明記）
+     - BI入力補助・ADL利得の「見込み」表示・測定/提出スケジュールの見張りまで。
+     - 正式なADL利得の確定計算（調整係数によるリスク調整）とLIFE提出はLIFE本体の役割。
+       本ツールの数値は確定値ではありません（＝非調整・見込み）。
+   ========================================================================= */
+
+/* -------------------------------------------------------------------------
+   Barthel Index 標準配点（合計100点満点）── 唯一の根拠 / 捏造禁止
+   出典準拠: docs/bi-spec.md §1(A)（標準Barthel Index）
+   各項目「取りうる配点のみ」を options に定義。layer=3層振分(自立/一部介助/全介助)。
+   ※ layer は各点数を 満点→自立 / 0→全介助 / 中間→一部介助 に機械的に振り分け。
+   ------------------------------------------------------------------------- */
+const ITEMS = [
+  {key:'feeding', label:'食事', max:10, options:[
+    {v:10,d:'自立（自助具可）'},{v:5,d:'一部介助（切る等）'},{v:0,d:'全介助'}]},
+  {key:'transfer', label:'移乗（椅子⇔ベッド）', max:15, options:[
+    {v:15,d:'自立'},{v:10,d:'最小介助・監視'},{v:5,d:'座位可・移乗に多大介助'},{v:0,d:'全介助'}]},
+  {key:'grooming', label:'整容', max:5, options:[
+    {v:5,d:'自立（洗面/整髪/歯磨/髭）'},{v:0,d:'介助'}]},
+  {key:'toilet', label:'トイレ動作', max:10, options:[
+    {v:10,d:'自立'},{v:5,d:'一部介助'},{v:0,d:'全介助'}]},
+  {key:'bathing', label:'入浴', max:5, options:[
+    {v:5,d:'自立'},{v:0,d:'介助'}]},
+  {key:'mobility', label:'歩行（移動）', max:15, options:[
+    {v:15,d:'自立（45m以上）'},{v:10,d:'介助歩行（45m）'},{v:5,d:'歩行不能・車椅子操作自立（45m）'},{v:0,d:'全介助'}]},
+  {key:'stairs', label:'階段昇降', max:10, options:[
+    {v:10,d:'自立'},{v:5,d:'介助・監視'},{v:0,d:'不能'}]},
+  {key:'dressing', label:'更衣', max:10, options:[
+    {v:10,d:'自立（ボタン/靴含む）'},{v:5,d:'一部介助'},{v:0,d:'全介助'}]},
+  {key:'bowels', label:'排便コントロール', max:10, options:[
+    {v:10,d:'失禁なし'},{v:5,d:'時に失禁'},{v:0,d:'失禁・管理'}]},
+  {key:'bladder', label:'排尿コントロール', max:10, options:[
+    {v:10,d:'失禁なし'},{v:5,d:'時に失禁'},{v:0,d:'失禁・カテーテル'}]},
+];
+const ITEM_ORDER = ITEMS.map(i=>i.key);
+function layerOf(item,v){ if(v===item.max) return '自立'; if(v===0) return '全介助'; return '一部介助'; }
+function layerColor(l){ return l==='自立'?'b-ok':l==='全介助'?'b-bad':'b-warn'; }
+
+/* -------- 加算・スケジュール定数（仮置き・定数化して差し替え可能） -------- */
+const ADD_ON = { I:1, II:3 };          // ADL維持等加算 平均利得しきい値（令和6年改定: Ⅱは3以上）
+const UNITS  = { I:30, II:60 };        // 単位/月（参考表示）
+const DEADLINE_DAY = 10;               // 提出期限＝測定月の翌月10日（仮置き）
+const NEAR_DAYS = 30;                  // 期限「間近」しきい値（仮置き・定数）
+const SUBMIT_GRACE = 30;               // 締切をこれ以上過ぎた測定は「周期外(対応済み想定)」として能動アラートから除外
+const AGG_MIN_STATUS = 'reviewed';     // 集計対象は「リーダー確認済(reviewed)」以上
+
+/* -------- 承認ワークフロー（段階ゲート／引継型：担当→リーダー→管理者） -------- */
+const STAGES = ['draft','submitted','reviewed','approved'];
+const STAGE_LABEL = {draft:'下書き',submitted:'提出済',reviewed:'確認済',approved:'承認済',rejected:'差戻し'};
+const STAGE_ORDER = {draft:0,submitted:1,reviewed:2,approved:3};
+// 各遷移に必要なロール（引継型）
+const GATE = {
+  submit:  {from:'draft',     to:'submitted', role:'staff',   label:'提出する',   cls:'btn-primary'},
+  review:  {from:'submitted', to:'reviewed',  role:'leader',  label:'確認する',   cls:'btn-ok'},
+  approve: {from:'reviewed',  to:'approved',  role:'manager', label:'承認する',   cls:'btn-ok'},
+};
+const ROLE_LABEL = {staff:'担当',leader:'リーダー',manager:'管理者'};
+
+/* =========================================================================
+   STORE_KEY 昇格（バージョン付き）＋マイグレーション
+   ========================================================================= */
+const STORE_KEY = 'bi_manager_v1';             // ← 独立アプリ専用の保存キー（昇格対応）
+const LEGACY_KEYS = ['bi_manager_v0'];         // 旧バージョンからの自動移行（昇格）。他アプリのキーは参照しない
+const SCHEMA_VERSION = 1;
+document.getElementById('skLabel').textContent = STORE_KEY;
+
+function nowISO(){ return new Date().toISOString(); }
+
+/* ---- デモseed ---- */
+function seedState(){
+  const U = [
+    ['u01','田中 花子','女',84,'要介護2','#e11d48'],
+    ['u02','佐藤 一郎','男',78,'要介護1','#2563eb'],
+    ['u03','鈴木 みつ','女',90,'要介護3','#7c3aed'],
+    ['u04','高橋 健二','男',72,'要支援2','#0891b2'],
+    ['u05','伊藤 とめ','女',87,'要介護2','#db2777'],
+    ['u06','渡辺 昭夫','男',80,'要介護1','#059669'],
+    ['u07','山本 久子','女',83,'要介護2','#d97706'],
+    ['u08','中村 正','男',76,'要介護3','#4f46e5'],
+    ['u09','小林 春江','女',88,'要介護1','#0d9488'],
+    ['u10','加藤 茂','男',81,'要介護2','#9333ea'],
+  ].map(([id,name,sex,age,care,color])=>({id,name,sex,age,care,color}));
+
+  // items配列は ITEM_ORDER 順（食事,移乗,整容,トイレ,入浴,歩行,階段,更衣,排便,排尿）
+  // [userId, phase, month, itemsArray, status]
+  const R = [
+    ['u01','initial','2025-12',[5,10,0,5,0,10,5,5,10,5],'approved'],
+    ['u01','followup','2026-06',[10,10,5,5,0,10,5,10,10,5],'approved'],
+    ['u02','initial','2026-01',[10,15,5,10,5,10,5,10,10,10],'reviewed'],
+    ['u02','followup','2026-07',[10,15,5,10,5,15,10,10,10,10],'reviewed'],
+    ['u03','initial','2025-12',[5,5,0,5,0,5,0,5,5,5],'reviewed'],
+    ['u03','followup','2026-06',[5,10,0,5,0,5,0,5,5,5],'reviewed'],
+    ['u04','initial','2026-01',[10,15,5,10,5,10,10,10,10,10],'reviewed'],
+    ['u04','followup','2026-07',[10,15,5,10,5,15,10,10,10,10],'reviewed'],
+    ['u05','initial','2025-12',[5,10,5,10,0,10,5,10,10,10],'approved'],
+    ['u05','followup','2026-06',[10,10,5,10,5,10,5,10,10,10],'approved'],
+    ['u06','initial','2026-01',[10,15,5,10,5,15,10,10,10,10],'reviewed'],
+    ['u06','followup','2026-07',[10,15,5,10,0,15,10,10,10,10],'reviewed'],
+    ['u07','initial','2025-12',[5,10,0,5,0,10,5,5,10,10],'reviewed'],
+    ['u07','followup','2026-06',[5,10,5,10,0,10,5,10,10,10],'reviewed'],
+    ['u08','initial','2026-01',[0,5,0,5,0,5,0,5,5,5],'reviewed'],
+    ['u08','followup','2026-07',[5,5,0,5,0,5,0,5,5,5],'reviewed'],
+    // 進行中（集計対象外）：u09 は6か月後が下書き、u10 は初回のみ提出済
+    ['u09','initial','2026-02',[10,10,5,10,5,10,5,10,10,10],'reviewed'],
+    ['u09','followup','2026-08',[10,15,5,10,5,10,5,10,10,10],'draft'],
+    ['u10','initial','2026-03',[5,10,0,5,0,5,5,5,10,5],'submitted'],
+  ];
+  const bi = R.map((r,idx)=>{
+    const [userId,phase,measuredMonth,arr,status]=r;
+    const items={}; ITEM_ORDER.forEach((k,i)=>items[k]=arr[i]);
+    const total=arr.reduce((a,b)=>a+b,0);
+    // 状態に応じた承認履歴（引継型の足跡）
+    const hist=[{stage:'draft',by:'担当',at:measuredMonth+'-05T09:10',comment:'BI測定を入力'}];
+    if(STAGE_ORDER[status]>=1) hist.push({stage:'submitted',by:'担当（機能訓練指導員）',at:measuredMonth+'-05T17:20',comment:'内容確認のうえ提出'});
+    if(STAGE_ORDER[status]>=2) hist.push({stage:'reviewed',by:'リーダー',at:measuredMonth+'-07T10:05',comment:'測定妥当。確定測定として集計対象に'});
+    if(STAGE_ORDER[status]>=3) hist.push({stage:'approved',by:'管理者',at:measuredMonth+'-08T13:40',comment:'承認。記録として確定'});
+    return {id:'bi'+String(idx+1).padStart(3,'0'),userId,phase,measuredMonth,items,total,
+      note:'', status, history:hist};
+  });
+  return {v:SCHEMA_VERSION, users:U, bi, seededAt:nowISO()};
+}
+
+/* ---- load / migrate / save ---- */
+function migrate(d){
+  if(!d) return null;
+  if(!Array.isArray(d.bi)) d.bi=[];          // バックフィル
+  if(!Array.isArray(d.users)) d.users=[];
+  d.bi.forEach(r=>{ if(!Array.isArray(r.history)) r.history=[];
+    if(typeof r.total!=='number') r.total=ITEM_ORDER.reduce((a,k)=>a+(r.items?.[k]||0),0); });
+  d.v=SCHEMA_VERSION;
+  return d;
+}
+function load(){
+  let raw=localStorage.getItem(STORE_KEY);
+  if(!raw){ // 旧キーからの昇格移行
+    for(const lk of LEGACY_KEYS){ const old=localStorage.getItem(lk);
+      if(old){ raw=old; break; } }
+  }
+  if(!raw){ const s=seedState(); save(s); return s; }
+  try{ const d=migrate(JSON.parse(raw)); save(d); return d; }
+  catch(e){ const s=seedState(); save(s); return s; }
+}
+function save(s){ localStorage.setItem(STORE_KEY, JSON.stringify(s)); }
+
+let STATE = load();
+let ROLE = 'staff';
+let TAB = 'dash';
+
+/* =========================================================================
+   純関数：集計・スケジュール
+   ========================================================================= */
+const userById = id => STATE.users.find(u=>u.id===id);
+const recTotal = r => ITEM_ORDER.reduce((a,k)=>a+(r.items[k]||0),0);
+function recOf(userId,phase){ return STATE.bi.find(r=>r.userId===userId && r.phase===phase); }
+function isCounted(r){ return r && STAGE_ORDER[r.status]!==undefined && STAGE_ORDER[r.status]>=STAGE_ORDER[AGG_MIN_STATUS]; }
+
+// 個人利得（両時点が「確定測定=reviewed以上」で揃う場合のみ）
+function gainOf(userId){
+  const a=recOf(userId,'initial'), b=recOf(userId,'followup');
+  if(isCounted(a) && isCounted(b)) return recTotal(b)-recTotal(a);
+  return null;
+}
+function officeAvgGain(){
+  const gs=STATE.users.map(u=>gainOf(u.id)).filter(g=>g!==null);
+  if(!gs.length) return {avg:null,n:0,list:gs};
+  return {avg:gs.reduce((a,b)=>a+b,0)/gs.length, n:gs.length, list:gs};
+}
+function addOnVerdict(avg){
+  if(avg===null) return {level:'—',cls:'b-mut',text:'算定対象データなし'};
+  if(avg>=ADD_ON.II) return {level:'(Ⅱ) 見込み',cls:'b-grape',text:`平均利得 ${fx(avg)} ≥ ${ADD_ON.II}`,units:UNITS.II};
+  if(avg>=ADD_ON.I)  return {level:'(Ⅰ) 見込み',cls:'b-ok',text:`平均利得 ${fx(avg)} ≥ ${ADD_ON.I}`,units:UNITS.I};
+  return {level:'未達',cls:'b-warn',text:`平均利得 ${fx(avg)} < ${ADD_ON.I}`};
+}
+
+/* -------- スケジュール／期限 -------- */
+function ymToDate(ym,day){ const [y,m]=ym.split('-').map(Number); return new Date(y,m-1,day); }
+function addMonths(ym,n){ const [y,m]=ym.split('-').map(Number); const d=new Date(y,m-1+n,1);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
+function deadlineOf(measuredMonth){ const nm=addMonths(measuredMonth,1); return ymToDate(nm,DEADLINE_DAY); }
+function today(){ return new Date(); } // 実行時の当日基準
+function daysBetween(a,b){ return Math.round((a-b)/86400000); }
+function fmtDate(d){ return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`; }
+function fmtYm(ym){ const [y,m]=ym.split('-'); return `${y}/${Number(m)}月`; }
+
+// 提出アラート：確定測定(reviewed以上)を「提出見張り対象」とみなす
+function deadlineStatus(measuredMonth){
+  const dl=deadlineOf(measuredMonth); const t=today(); const diff=daysBetween(dl,t);
+  if(diff < -SUBMIT_GRACE) return {kind:'closed',cls:'b-mut',icon:'☑️',text:'周期外（対応済み想定）',dl};
+  if(diff<0) return {kind:'over',cls:'b-bad',icon:'🔴',text:`超過（${-diff}日）`,dl};
+  if(diff<=NEAR_DAYS) return {kind:'near',cls:'b-warn',icon:'🟡',text:`あと${diff}日`,dl};
+  return {kind:'ok',cls:'b-mut',icon:'⚪',text:`あと${diff}日`,dl};
+}
+// 次回BI測定月（直近measuredMonth+6）
+function nextMeasureMonth(userId){
+  const f=recOf(userId,'followup'), i=recOf(userId,'initial');
+  const base=f?f.measuredMonth:(i?i.measuredMonth:null);
+  return base?addMonths(base,6):null;
+}
+
+/* schedule行の組み立て（提出見張り＋次回測定） */
+function scheduleRows(){
+  const rows=[];
+  STATE.users.forEach(u=>{
+    ['initial','followup'].forEach(ph=>{
+      const r=recOf(u.id,ph); if(!r) return;
+      const counted=isCounted(r);
+      const ds=deadlineStatus(r.measuredMonth);
+      rows.push({type:'submit',user:u,rec:r,phase:ph,ds,counted});
+    });
+    const nm=nextMeasureMonth(u.id);
+    if(nm){ const t=today(); const nmDate=ymToDate(nm,1);
+      const diff=daysBetween(nmDate,t);
+      // 次回測定が「今月+1」以内なら注意
+      rows.push({type:'measure',user:u,nextMonth:nm,near:diff<=45 && diff>-32,diff});
+    }
+  });
+  return rows;
+}
+
+/* =========================================================================
+   小物
+   ========================================================================= */
+function fx(n){ return (Math.round(n*10)/10).toString(); }
+function esc(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function el(html){ const t=document.createElement('template'); t.innerHTML=html.trim(); return t.content.firstElementChild; }
+function avatar(u){ return `<span class="avatar" style="background:${u.color}">${esc(u.name[0])}</span>`; }
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('on');
+  clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('on'),1900); }
+
+/* =========================================================================
+   モーダル（confirm禁止 → 自作モーダル）
+   ========================================================================= */
+const overlay=document.getElementById('overlay'), modalEl=document.getElementById('modal');
+function openModal(html,size){ modalEl.className='modal'+(size==='sm'?' sm':''); modalEl.innerHTML=html;
+  overlay.classList.add('on'); }
+function closeModal(){ overlay.classList.remove('on'); modalEl.innerHTML=''; }
+overlay.addEventListener('click',e=>{ if(e.target===overlay) closeModal(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
+
+function confirmModal({title,body,okLabel='OK',okCls='btn-primary',onOk}){
+  openModal(`
+    <div class="mhd"><h3>${esc(title)}</h3><button class="x" onclick="closeModal()">✕</button></div>
+    <div class="mbd">${body}</div>
+    <div class="mft">
+      <button class="btn btn-ghost" onclick="closeModal()">キャンセル</button>
+      <button class="btn ${okCls}" id="cmOk">${esc(okLabel)}</button>
+    </div>`,'sm');
+  document.getElementById('cmOk').onclick=()=>{ onOk&&onOk(); };
+}
+
+/* =========================================================================
+   ナビ描画
+   ========================================================================= */
+const TABS=[
+  {id:'dash',  label:'📊 ダッシュボード'},
+  {id:'users', label:'👥 利用者'},
+  {id:'input', label:'📝 BI評価入力'},
+  {id:'addon', label:'💰 加算見込み'},
+  {id:'sched', label:'⏰ 提出スケジュール'},
+];
+function renderNav(){
+  const nav=document.getElementById('nav'); nav.innerHTML='';
+  const alerts=scheduleRows().filter(r=>r.type==='submit' && r.counted && (r.ds.kind==='over'||r.ds.kind==='near')).length;
+  TABS.forEach(t=>{
+    const b=el(`<button class="${t.id===TAB?'on':''}">${t.label}${t.id==='sched'&&alerts?`<span class="n">${alerts}</span>`:''}</button>`);
+    b.onclick=()=>{ TAB=t.id; renderNav(); render(); window.scrollTo({top:0,behavior:'smooth'}); };
+    nav.appendChild(b);
+  });
+}
+
+/* 共通：立ち位置の注記 */
+const SCOPE_NOTE=`<div class="scope">⚠️
+  <div><b>本画面のADL利得・加算判定は「見込み」です（非調整・非確定）。</b>
+  正式なADL利得の確定計算（調整係数によるリスク調整）とLIFEへの提出は<b>LIFE本体</b>で行ってください。
+  本ツールは<b>BI入力補助・見込み表示・提出/測定スケジュールの見張り</b>までを担い、加算の実算定可否は判定しません。
+  データはこのブラウザ内（localStorage）にのみ保存されます。</div></div>`;
+
+function aiPanel(title,lines){
+  return `<div class="ai"><div class="hd"><span class="bot">🤖</span>${esc(title)}
+    <span class="tag">AI pt ／ 自動要約</span></div>
+    <ul class="big">${lines.map(l=>`<li>${l}</li>`).join('')}</ul></div>`;
+}
+
+/* =========================================================================
+   TAB 1: ダッシュボード
+   ========================================================================= */
+function viewDash(){
+  const off=officeAvgGain(); const verdict=addOnVerdict(off.avg);
+  const rows=scheduleRows();
+  const overdue=rows.filter(r=>r.type==='submit'&&r.counted&&r.ds.kind==='over');
+  const near=rows.filter(r=>r.type==='submit'&&r.counted&&r.ds.kind==='near');
+  const measuredUsers=STATE.users.filter(u=>gainOf(u.id)!==null).length;
+  const improved=STATE.users.filter(u=>{const g=gainOf(u.id); return g!==null&&g>0;}).length;
+  const pending=STATE.bi.filter(r=>!isCounted(r)).length;
+
+  const alertCards=[...overdue.map(r=>({...r,tone:'a-bad'})),...near.map(r=>({...r,tone:'a-warn'}))]
+    .map(r=>`<div class="alert ${r.tone}" onclick="openDetail('${r.rec.userId}')">
+      <div class="ic">${r.ds.icon}</div>
+      <div class="m"><b>${avatar(r.user)}${esc(r.user.name)} ／ ${r.phase==='initial'?'初回':'6か月後'}測定（${fmtYm(r.rec.measuredMonth)}）</b>
+      <div class="d">LIFE提出期限 ${fmtDate(r.ds.dl)} ・ <span class="badge ${r.ds.cls}">${r.ds.text}</span></div></div>
+      <span class="chip">詳細 →</span></div>`).join('') || `<div class="sub">現在、超過・間近の提出はありません。</div>`;
+
+  const ai=aiPanel('事業所サマリー（本日 '+fmtDate(today())+' 時点）',[
+    `事業所平均ADL利得は <b>${off.avg===null?'—':fx(off.avg)}点</b>（対象 ${off.n}名 / 確定測定 reviewed以上）。<b>ADL維持等加算 ${verdict.level}</b> の水準です。<span class="sub">※見込み・非調整</span>`,
+    `利得プラスは <b>${improved}名</b>／測定ペア確定 <b>${measuredUsers}名</b>。次のしきい値まで平均${off.avg===null?'—':(off.avg>=ADD_ON.II?'到達済':fx(ADD_ON.II-off.avg)+'点')}。`,
+    overdue.length?`<b style="color:var(--bad)">提出期限超過 ${overdue.length}件</b>。最優先で確認・提出手続きを。`:`提出期限の超過はありません。`,
+    pending?`未確定（下書き/提出待ち）が <b>${pending}件</b>。担当→リーダーの引継ぎを進めてください。`:`承認待ちの滞留はありません。`,
+  ]);
+
+  return `${SCOPE_NOTE}${ai}
+  <div class="grid k4" style="margin-bottom:16px">
+    <div class="card kpi"><div class="lab">事業所 平均ADL利得</div>
+      <div class="val">${off.avg===null?'—':fx(off.avg)}<small> 点</small></div>
+      <div class="foot">対象 ${off.n}名 ・ 見込み(非調整)</div></div>
+    <div class="card kpi"><div class="lab">加算見込み判定</div>
+      <div class="val" style="font-size:22px;margin-top:8px"><span class="badge ${verdict.cls}" style="font-size:14px">${verdict.level}</span></div>
+      <div class="foot">${verdict.text}${verdict.units?` ・ 参考 ${verdict.units}単位/月`:''}</div></div>
+    <div class="card kpi"><div class="lab">提出アラート</div>
+      <div class="val">${overdue.length}<small> 超過</small> <span style="color:var(--warn)">${near.length}</span><small> 間近</small></div>
+      <div class="foot">翌月${DEADLINE_DAY}日締め・${NEAR_DAYS}日前で注意</div></div>
+    <div class="card kpi"><div class="lab">承認待ち（滞留）</div>
+      <div class="val">${pending}<small> 件</small></div>
+      <div class="foot">担当→リーダー→管理者</div></div>
+  </div>
+
+  <div class="grid k2">
+    <div class="card">
+      <h2 class="sec">⏰ BI測定・LIFE提出アラート</h2>
+      <p class="sub" style="margin-top:-6px">提出期限＝測定月の翌月${DEADLINE_DAY}日（仮置き）。クリックで利用者のBI詳細へ。</p>
+      ${alertCards}
+    </div>
+    <div class="card">
+      <h2 class="sec">📈 利用者別 ADL利得（見込み）</h2>
+      <div class="tblwrap" style="box-shadow:none;border:0">
+      <table style="min-width:0"><thead><tr><th>利用者</th><th class="num">初回</th><th class="num">6か月後</th><th class="num">利得</th><th>加算寄与</th></tr></thead>
+      <tbody>${STATE.users.map(u=>{
+        const g=gainOf(u.id); const a=recOf(u.id,'initial'),b=recOf(u.id,'followup');
+        const cls=g===null?'delta-0':g>0?'delta-up':g<0?'delta-dn':'delta-0';
+        const contrib=g===null?'<span class="miss">対象外</span>':(g>=ADD_ON.II?'<span class="badge b-grape">Ⅱ級</span>':g>=ADD_ON.I?'<span class="badge b-ok">Ⅰ級</span>':g>0?'<span class="chip">微増</span>':'<span class="chip">維持/低下</span>');
+        return `<tr onclick="openDetail('${u.id}')"><td>${avatar(u)}${esc(u.name)}</td>
+          <td class="num">${a&&isCounted(a)?recTotal(a):'—'}</td>
+          <td class="num">${b&&isCounted(b)?recTotal(b):'—'}</td>
+          <td class="num ${cls}">${g===null?'—':(g>0?'+':'')+g}</td>
+          <td>${contrib}</td></tr>`;
+      }).join('')}</tbody></table></div>
+    </div>
+  </div>`;
+}
+
+/* =========================================================================
+   TAB 2: 利用者
+   ========================================================================= */
+function viewUsers(){
+  const ai=aiPanel('利用者ポートフォリオ所見',[
+    `登録 <b>${STATE.users.length}名</b>。うち初回・6か月後の測定ペアが確定しているのは <b>${STATE.users.filter(u=>gainOf(u.id)!==null).length}名</b>。`,
+    `要介護度の重い層ほど伸びしろが大きい傾向。<b>${(()=>{let best=null,bg=-99;STATE.users.forEach(u=>{const g=gainOf(u.id);if(g!==null&&g>bg){bg=g;best=u;}});return best?esc(best.name)+`（+${bg}）`:'—';})()}</b> が最大改善。`,
+    `未測定・片側のみの利用者は「BI評価入力」から測定記録を追加してください。`,
+  ]);
+  const cards=STATE.users.map(u=>{
+    const g=gainOf(u.id); const i=recOf(u.id,'initial'),f=recOf(u.id,'followup');
+    const cls=g===null?'delta-0':g>0?'delta-up':g<0?'delta-dn':'delta-0';
+    const iT=i?recTotal(i):null, fT=f?recTotal(f):null;
+    return `<div class="card" style="cursor:pointer" onclick="openDetail('${u.id}')">
+      <div style="display:flex;align-items:center;gap:4px">${avatar(u)}
+        <div><b>${esc(u.name)}</b><div class="sub">${u.sex}・${u.age}歳・<span class="chip">${u.care}</span></div></div>
+        <div style="margin-left:auto;text-align:right">
+          <div class="${cls}" style="font-size:20px;font-weight:800">${g===null?'—':(g>0?'+':'')+g}</div>
+          <div class="sub" style="font-size:11px">ADL利得(見込)</div></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <div style="flex:1"><div class="sub" style="font-size:11px">初回</div>
+          <div style="font-weight:800">${iT!==null?iT:'<span class="miss">未</span>'}<small class="sub"> /100</small></div>
+          ${iT!==null?`<div class="bar-track" style="margin-top:4px"><div class="bar-fill" style="width:${iT}%"></div></div>`:''}</div>
+        <div style="flex:1"><div class="sub" style="font-size:11px">6か月後</div>
+          <div style="font-weight:800">${fT!==null?fT:'<span class="miss">未</span>'}<small class="sub"> /100</small></div>
+          ${fT!==null?`<div class="bar-track" style="margin-top:4px"><div class="bar-fill" style="width:${fT}%"></div></div>`:''}</div>
+      </div>
+      <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
+        ${i?stagePill(i):''}${f?stagePill(f):'<span class="chip">6か月後 未測定</span>'}
+      </div></div>`;
+  }).join('');
+  return `${SCOPE_NOTE}${ai}<div class="grid k3">${cards}</div>`;
+}
+function stagePill(r){
+  const c=r.status==='approved'?'b-ok':r.status==='reviewed'?'b-brand':r.status==='submitted'?'b-warn':r.status==='rejected'?'b-bad':'b-mut';
+  return `<span class="badge ${c}">${r.phase==='initial'?'初回':'6か月後'}：${STAGE_LABEL[r.status]}</span>`;
+}
+
+/* =========================================================================
+   TAB 3: BI評価入力（一覧＋記録モーダル）
+   ========================================================================= */
+let filt={q:'',status:'',phase:''};
+function viewInput(){
+  const ai=aiPanel('入力・承認フローの状況',[
+    `承認は<b>段階ゲート（引継型）</b>：担当が入力→<b>提出</b>、リーダーが<b>確認</b>、管理者が<b>承認</b>。確認済(reviewed)以上が加算集計の対象です。`,
+    `現在の未確定：下書き ${STATE.bi.filter(r=>r.status==='draft').length}件／提出待ち ${STATE.bi.filter(r=>r.status==='submitted').length}件。あなたのロールは<b>${ROLE_LABEL[ROLE]}</b>。`,
+    `10項目は標準Barthel Index（合計100点）に準拠。各項目「取りうる配点のみ」を選択でき、合計は即時ライブ計算されます。`,
+  ]);
+  const list=STATE.bi.filter(r=>{
+    const u=userById(r.userId);
+    if(filt.q && !u.name.includes(filt.q)) return false;
+    if(filt.status && r.status!==filt.status) return false;
+    if(filt.phase && r.phase!==filt.phase) return false;
+    return true;
+  }).sort((a,b)=> a.userId.localeCompare(b.userId) || (a.phase>b.phase?1:-1));
+
+  const rows=list.map(r=>{
+    const u=userById(r.userId); const ds=deadlineStatus(r.measuredMonth);
+    return `<tr onclick="openDetail('${r.userId}','${r.id}')">
+      <td>${avatar(u)}${esc(u.name)}</td>
+      <td>${r.phase==='initial'?'<span class="chip">初回</span>':'<span class="chip">6か月後</span>'}</td>
+      <td>${fmtYm(r.measuredMonth)}</td>
+      <td class="num"><b>${recTotal(r)}</b><small class="sub"> /100</small></td>
+      <td>${stagePill(r)}</td>
+      <td><span class="badge ${ds.cls}">${ds.icon} ${ds.text}</span></td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="6" class="sub" style="text-align:center;padding:24px">該当する記録がありません。</td></tr>`;
+
+  return `${SCOPE_NOTE}${ai}
+  <div class="toolbar">
+    <input id="fq" placeholder="🔍 利用者名で検索" value="${esc(filt.q)}" oninput="filt.q=this.value;render();const e=document.getElementById('fq');if(e){e.focus();e.setSelectionRange(e.value.length,e.value.length);}">
+    <select id="fp" onchange="filt.phase=this.value;render()">
+      <option value="">時点：すべて</option><option value="initial"${filt.phase==='initial'?' selected':''}>初回</option>
+      <option value="followup"${filt.phase==='followup'?' selected':''}>6か月後</option></select>
+    <select id="fs" onchange="filt.status=this.value;render()">
+      <option value="">状態：すべて</option>
+      ${STAGES.map(s=>`<option value="${s}"${filt.status===s?' selected':''}>${STAGE_LABEL[s]}</option>`).join('')}</select>
+    <div class="grow" style="flex:1"></div>
+    <button class="btn btn-primary" onclick="openInput()">＋ BI測定を記録</button>
+  </div>
+  <div class="tblwrap"><table>
+    <thead><tr><th>利用者</th><th>時点</th><th>測定月</th><th class="num">BI合計</th><th>承認状態</th><th>提出期限</th></tr></thead>
+    <tbody>${rows}</tbody></table></div>
+  <div class="legend">凡例：🔴超過 ／ 🟡間近（${NEAR_DAYS}日以内） ／ ⚪余裕　｜　合計は保存時に items から再計算し整合を担保</div>`;
+}
+
+/* ---- 入力モーダル ---- */
+let draft=null; // {userId,phase,measuredMonth,items{},note}
+function openInput(userId,phase){
+  const firstUser=userId||STATE.users[0].id;
+  draft={userId:firstUser, phase:phase||'initial', measuredMonth:defaultMonth(), items:{}, note:''};
+  ITEM_ORDER.forEach(k=>draft.items[k]=null);
+  renderInputModal();
+}
+function defaultMonth(){ const d=today(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
+function draftTotal(){ return ITEM_ORDER.reduce((a,k)=>a+(draft.items[k]??0),0); }
+function draftComplete(){ return ITEM_ORDER.every(k=>draft.items[k]!==null); }
+
+function renderInputModal(){
+  const total=draftTotal(); const done=ITEM_ORDER.filter(k=>draft.items[k]!==null).length;
+  const itemsHtml=ITEMS.map(it=>`
+    <div class="item">
+      <div class="top"><b>${it.label}</b><span class="mx">満点 ${it.max}</span></div>
+      <div class="segs">${it.options.map(o=>{
+        const on=draft.items[it.key]===o.v; const lay=layerOf(it,o.v);
+        return `<div class="seg ${on?'on':''}" onclick="pick('${it.key}',${o.v})">
+          <span class="pt">${o.v}点</span><span class="ds">${o.d}</span>
+          <span class="lay"><span class="badge ${layerColor(lay)}" style="padding:1px 6px;font-size:9px">${lay}</span></span></div>`;
+      }).join('')}</div>
+    </div>`).join('');
+  const existing=recOf(draft.userId,draft.phase);
+  openModal(`
+    <div class="mhd"><h3>📝 BI測定を記録</h3><button class="x" onclick="closeModal()">✕</button></div>
+    <div class="mbd">
+      <div class="frow">
+        <div class="fld"><label>利用者</label>
+          <select onchange="draft.userId=this.value;renderInputModal()">
+            ${STATE.users.map(u=>`<option value="${u.id}"${u.id===draft.userId?' selected':''}>${esc(u.name)}（${u.care}）</option>`).join('')}</select></div>
+        <div class="fld"><label>測定時点</label>
+          <select onchange="draft.phase=this.value;renderInputModal()">
+            <option value="initial"${draft.phase==='initial'?' selected':''}>初回（利用開始月）</option>
+            <option value="followup"${draft.phase==='followup'?' selected':''}>6か月後（7か月目相当）</option></select></div>
+        <div class="fld"><label>測定月</label>
+          <input type="month" value="${draft.measuredMonth}" onchange="draft.measuredMonth=this.value;renderInputModal()"></div>
+      </div>
+      ${existing?`<div class="scope" style="margin-bottom:12px">ℹ️ この利用者の「${draft.phase==='initial'?'初回':'6か月後'}」は既に登録済み（合計${recTotal(existing)}点・${STAGE_LABEL[existing.status]}）。保存すると上書きされます。</div>`:''}
+      <div class="items">${itemsHtml}</div>
+      <div class="fld" style="margin-top:14px"><label>特記事項（任意）</label>
+        <textarea rows="2" oninput="draft.note=this.value" placeholder="測定時の状況・補助具・体調など">${esc(draft.note)}</textarea></div>
+      <div class="livebar">
+        <div>BI合計 <span class="tot">${total}</span><small class="sub"> /100</small></div>
+        <div class="bar-track" style="flex:1"><div class="bar-fill" style="width:${total}%"></div></div>
+        <div class="sub">${done}/10 項目</div>
+      </div>
+    </div>
+    <div class="mft">
+      <button class="btn btn-ghost" onclick="closeModal()">キャンセル</button>
+      <button class="btn btn-ghost" ${draftComplete()?'':'disabled'} onclick="saveDraft('draft')">下書き保存</button>
+      <button class="btn btn-primary" ${draftComplete()&&ROLE==='staff'?'':'disabled'} onclick="saveDraft('submitted')"
+        title="${ROLE==='staff'?'':'提出は担当ロールのみ'}">提出する（担当）</button>
+    </div>`);
+}
+function pick(key,v){ draft.items[key]=v; renderInputModal(); }
+function saveDraft(status){
+  if(!draftComplete()){ toast('全10項目を選択してください'); return; }
+  const total=draftTotal();
+  const existing=recOf(draft.userId,draft.phase);
+  const hist=[];
+  const stamp=nowISO().slice(0,16);
+  if(existing){ existing.items={...draft.items}; existing.total=total; existing.note=draft.note;
+    existing.status=status; existing.measuredMonth=draft.measuredMonth;
+    existing.history.push({stage:status,by:ROLE_LABEL[ROLE],at:stamp,comment:status==='submitted'?'再入力のうえ提出':'下書き更新'});
+  } else {
+    hist.push({stage:'draft',by:ROLE_LABEL[ROLE],at:stamp,comment:'BI測定を入力'});
+    if(status==='submitted') hist.push({stage:'submitted',by:ROLE_LABEL[ROLE],at:stamp,comment:'内容確認のうえ提出'});
+    const id='bi'+Date.now().toString(36);
+    STATE.bi.push({id,userId:draft.userId,phase:draft.phase,measuredMonth:draft.measuredMonth,
+      items:{...draft.items},total,note:draft.note,status,history:hist});
+  }
+  save(STATE); closeModal(); renderNav(); render();
+  toast(status==='submitted'?'提出しました（リーダー確認待ち）':'下書き保存しました');
+}
+
+/* =========================================================================
+   TAB 4: 加算見込み
+   ========================================================================= */
+function viewAddon(){
+  const off=officeAvgGain(); const verdict=addOnVerdict(off.avg);
+  const list=STATE.users.map(u=>({u,g:gainOf(u.id),i:recOf(u.id,'initial'),f:recOf(u.id,'followup')}));
+  const counted=list.filter(x=>x.g!==null);
+  const distI=counted.filter(x=>x.g>=ADD_ON.I).length;
+  const distII=counted.filter(x=>x.g>=ADD_ON.II).length;
+  const gap=off.avg===null?null:(off.avg>=ADD_ON.II?0:ADD_ON.II-off.avg);
+
+  const ai=aiPanel('加算見込みの読み解き（見込み・非調整）',[
+    `確定測定ペア <b>${off.n}名</b> の平均ADL利得は <b>${off.avg===null?'—':fx(off.avg)}点</b> → <b>ADL維持等加算 ${verdict.level}</b>。`,
+    off.avg===null?'集計対象がありません。':(off.avg>=ADD_ON.II?`しきい値(Ⅱ)=${ADD_ON.II}を上回っています。維持のため低下傾向の利用者を要フォロー。`:`(Ⅱ)まであと<b>${fx(gap)}点</b>（平均）。上位改善者の維持と、低下者の底上げが鍵。`),
+    `<b>本ツールはここまで（見込み表示）。</b>確定計算（調整係数）と実提出はLIFE本体で。利用者数・利用期間などの<b>制度要件充足は判定しません</b>。`,
+  ]);
+
+  return `${SCOPE_NOTE}${ai}
+  <div class="grid k3" style="margin-bottom:16px">
+    <div class="card kpi"><div class="lab">事業所 平均ADL利得（見込・非調整）</div>
+      <div class="val">${off.avg===null?'—':fx(off.avg)}<small> 点</small></div>
+      <div class="foot">= Σ(6か月後 − 初回) ÷ ${off.n}名（reviewed以上）</div></div>
+    <div class="card kpi" style="border-color:${verdict.cls==='b-grape'?'#d9c9fb':verdict.cls==='b-ok'?'#bfe6cd':'#f0dcb8'}">
+      <div class="lab">ADL維持等加算 判定</div>
+      <div class="val" style="font-size:22px;margin-top:8px"><span class="badge ${verdict.cls}" style="font-size:15px">${verdict.level}</span></div>
+      <div class="foot">${verdict.text}${verdict.units?` ・ 参考 ${verdict.units}単位/月`:''}</div></div>
+    <div class="card kpi"><div class="lab">しきい値到達 内訳</div>
+      <div class="val" style="font-size:20px;margin-top:6px">Ⅰ<span style="color:var(--ok)">${distI}</span> <small>名</small> ／ Ⅱ<span style="color:var(--grape)">${distII}</span> <small>名</small></div>
+      <div class="foot">個人利得 ≥${ADD_ON.I}／≥${ADD_ON.II} の人数</div></div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px">
+    <h2 class="sec">📏 しきい値ゲージ（事業所平均）</h2>
+    ${gaugeHtml(off.avg)}
+    <div class="legend">(Ⅰ) 平均利得 ≥ ${ADD_ON.I}（${UNITS.I}単位/月）　｜　(Ⅱ) ≥ ${ADD_ON.II}（${UNITS.II}単位/月）　｜　令和6年度改定準拠（Ⅱは2→3以上に厳格化）</div>
+  </div>
+
+  <div class="card">
+    <h2 class="sec">利用者別 利得と加算寄与</h2>
+    <div class="tblwrap" style="box-shadow:none;border:0"><table>
+      <thead><tr><th>利用者</th><th class="num">初回BI</th><th class="num">6か月後BI</th><th class="num">利得(後−前)</th><th>加算寄与</th><th>集計</th></tr></thead>
+      <tbody>${list.map(x=>{
+        const {u,g,i,f}=x; const cls=g===null?'delta-0':g>0?'delta-up':g<0?'delta-dn':'delta-0';
+        const contrib=g===null?'—':(g>=ADD_ON.II?'<span class="badge b-grape">Ⅱ級到達</span>':g>=ADD_ON.I?'<span class="badge b-ok">Ⅰ級到達</span>':g>0?'<span class="chip">微増</span>':'<span class="chip">維持/低下</span>');
+        const inc=g===null?'<span class="badge b-mut">対象外</span>':'<span class="badge b-brand">対象</span>';
+        return `<tr onclick="openDetail('${u.id}')"><td>${avatar(u)}${esc(u.name)}</td>
+          <td class="num">${i&&isCounted(i)?recTotal(i):(i?'<span class="miss">未確定</span>':'—')}</td>
+          <td class="num">${f&&isCounted(f)?recTotal(f):(f?'<span class="miss">未確定</span>':'—')}</td>
+          <td class="num ${cls}">${g===null?'—':(g>0?'+':'')+g}</td>
+          <td>${contrib}</td><td>${inc}</td></tr>`;
+      }).join('')}</tbody></table></div>
+    <div class="legend">「対象外」＝初回/6か月後のどちらかが未測定、または確認済(reviewed)未満のため集計に含めていません。</div>
+  </div>`;
+}
+function gaugeHtml(avg){
+  const maxScale=5; const pct=avg===null?0:Math.max(0,Math.min(100,avg/maxScale*100));
+  const pI=ADD_ON.I/maxScale*100, pII=ADD_ON.II/maxScale*100;
+  return `<div style="position:relative;height:46px;margin:18px 0 6px">
+    <div style="position:absolute;inset:0;height:16px;top:15px;border-radius:10px;background:linear-gradient(90deg,#fee2e2,#fef3c7,#dcfce7,#ede9fe)"></div>
+    <div style="position:absolute;top:15px;height:16px;width:${pct}%;border-radius:10px;background:linear-gradient(90deg,#2563eb,#7c3aed);box-shadow:0 0 0 2px #fff"></div>
+    <div style="position:absolute;left:${pct}%;top:2px;transform:translateX(-50%);font-weight:800;font-size:12px">${avg===null?'—':fx(avg)}▼</div>
+    <div style="position:absolute;left:${pI}%;top:33px;transform:translateX(-50%);font-size:11px;color:var(--ok);font-weight:800">Ⅰ ${ADD_ON.I}</div>
+    <div style="position:absolute;left:${pI}%;top:12px;height:22px;border-left:2px dashed #16a34a"></div>
+    <div style="position:absolute;left:${pII}%;top:33px;transform:translateX(-50%);font-size:11px;color:var(--grape);font-weight:800">Ⅱ ${ADD_ON.II}</div>
+    <div style="position:absolute;left:${pII}%;top:12px;height:22px;border-left:2px dashed #7c3aed"></div>
+  </div>`;
+}
+
+/* =========================================================================
+   TAB 5: 提出スケジュール
+   ========================================================================= */
+function viewSched(){
+  const rows=scheduleRows();
+  const subs=rows.filter(r=>r.type==='submit').sort((a,b)=>a.ds.dl-b.ds.dl);
+  const over=subs.filter(r=>r.ds.kind==='over'&&r.counted);
+  const near=subs.filter(r=>r.ds.kind==='near'&&r.counted);
+  const measures=rows.filter(r=>r.type==='measure').sort((a,b)=>a.nextMonth<b.nextMonth?-1:1);
+
+  const ai=aiPanel('提出/測定スケジュールの見張り',[
+    `LIFE提出期限＝<b>測定月の翌月${DEADLINE_DAY}日</b>（仮置き・定数）。本日 ${fmtDate(today())} 時点で <b style="color:var(--bad)">超過${over.length}件</b>／<b style="color:var(--warn)">間近${near.length}件</b>。`,
+    over.length?`超過は最優先。確定測定（reviewed以上）を対象に表示しています。`:`超過はありません。良いペースです。`,
+    `<b>提出そのものはLIFE本体で。</b>本ツールは締切の見張り（アラート）とスケジュール把握までを担います。`,
+  ]);
+
+  const subRows=subs.map(r=>{
+    const label=r.phase==='initial'?'初回':'6か月後';
+    const state=r.counted?stagePill(r.rec):`<span class="badge b-mut">${STAGE_LABEL[r.rec.status]}（未確定）</span>`;
+    return `<tr onclick="openDetail('${r.user.id}','${r.rec.id}')">
+      <td>${avatar(r.user)}${esc(r.user.name)}</td>
+      <td><span class="chip">${label}</span></td>
+      <td>${fmtYm(r.rec.measuredMonth)}</td>
+      <td>${fmtDate(r.ds.dl)}</td>
+      <td><span class="badge ${r.ds.cls}">${r.ds.icon} ${r.ds.text}</span></td>
+      <td>${state}</td></tr>`;
+  }).join('');
+
+  const measureRows=measures.map(r=>`
+    <tr onclick="openDetail('${r.user.id}')">
+      <td>${avatar(r.user)}${esc(r.user.name)}</td>
+      <td>${fmtYm(r.nextMonth)}</td>
+      <td>${r.near?'<span class="badge b-warn">🟡 測定時期が近い</span>':'<span class="badge b-mut">予定</span>'}</td>
+    </tr>`).join('');
+
+  return `${SCOPE_NOTE}${ai}
+  <div class="grid k3" style="margin-bottom:16px">
+    <div class="card kpi"><div class="lab">🔴 提出期限 超過</div><div class="val" style="color:var(--bad)">${over.length}<small> 件</small></div><div class="foot">要・最優先対応</div></div>
+    <div class="card kpi"><div class="lab">🟡 提出期限 間近</div><div class="val" style="color:var(--warn)">${near.length}<small> 件</small></div><div class="foot">${NEAR_DAYS}日以内</div></div>
+    <div class="card kpi"><div class="lab">📅 次回BI測定 予定</div><div class="val">${measures.length}<small> 件</small></div><div class="foot">直近測定＋6か月</div></div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px">
+    <h2 class="sec">🗓 LIFE提出 期限一覧（測定月の翌月${DEADLINE_DAY}日締め）</h2>
+    <div class="tblwrap" style="box-shadow:none;border:0"><table>
+      <thead><tr><th>利用者</th><th>時点</th><th>測定月</th><th>提出期限</th><th>アラート</th><th>承認状態</th></tr></thead>
+      <tbody>${subRows}</tbody></table></div>
+  </div>
+
+  <div class="card">
+    <h2 class="sec">📅 次回BI測定 予定（初回/6か月後の周期）</h2>
+    <div class="tblwrap" style="box-shadow:none;border:0"><table style="min-width:0">
+      <thead><tr><th>利用者</th><th>次回測定月（予定）</th><th>状態</th></tr></thead>
+      <tbody>${measureRows}</tbody></table></div>
+  </div>`;
+}
+
+/* =========================================================================
+   詳細モーダル（10項目内訳・対比・利得・履歴・ワークフロー操作）
+   ========================================================================= */
+function openDetail(userId,focusRecId){
+  const u=userById(userId); const i=recOf(userId,'initial'),f=recOf(userId,'followup');
+  const g=gainOf(userId);
+  const focus = focusRecId ? STATE.bi.find(r=>r.id===focusRecId) : (f||i);
+  const cmp = (i&&f);
+
+  const itemRows=ITEMS.map(it=>{
+    const iv=i?i.items[it.key]:null, fv=f?f.items[it.key]:null;
+    const d=(iv!=null&&fv!=null)?fv-iv:null;
+    const dcls=d===null?'delta-0':d>0?'delta-up':d<0?'delta-dn':'delta-0';
+    const lay=v=>v==null?'—':`<span class="badge ${layerColor(layerOf(it,v))}" style="padding:1px 6px;font-size:9px">${layerOf(it,v)}</span>`;
+    return `<tr><td>${it.label}<br><span class="sub" style="font-size:10px">満点${it.max}</span></td>
+      <td class="num">${iv??'—'} ${i?lay(iv):''}</td>
+      <td class="num">${fv??'—'} ${f?lay(fv):''}</td>
+      <td class="num ${dcls}">${d===null?'—':(d>0?'+':'')+d}</td></tr>`;
+  }).join('');
+
+  const gcls=g===null?'delta-0':g>0?'delta-up':g<0?'delta-dn':'delta-0';
+  const histHtml=(focus.history||[]).slice().reverse().map(h=>`
+    <div class="tl"><div><b>${STAGE_LABEL[h.stage]||h.stage}</b> <span class="chip">${esc(h.by)}</span></div>
+      <div class="w">${esc(h.at).replace('T',' ')}　${esc(h.comment||'')}</div></div>`).join('');
+
+  openModal(`
+    <div class="mhd">${avatar(u)}<h3>${esc(u.name)} <span class="sub" style="font-weight:600">${u.sex}・${u.age}歳・${u.care}</span></h3>
+      <button class="x" onclick="closeModal()">✕</button></div>
+    <div class="mbd">
+      <div class="grid k3" style="margin-bottom:14px">
+        <div class="card kpi" style="padding:12px"><div class="lab">初回BI</div><div class="val" style="font-size:24px">${i?recTotal(i):'—'}<small> /100</small></div><div class="foot">${i?fmtYm(i.measuredMonth)+' ・ '+STAGE_LABEL[i.status]:'未測定'}</div></div>
+        <div class="card kpi" style="padding:12px"><div class="lab">6か月後BI</div><div class="val" style="font-size:24px">${f?recTotal(f):'—'}<small> /100</small></div><div class="foot">${f?fmtYm(f.measuredMonth)+' ・ '+STAGE_LABEL[f.status]:'未測定'}</div></div>
+        <div class="card kpi" style="padding:12px"><div class="lab">ADL利得（見込・非調整）</div><div class="val ${gcls}" style="font-size:24px">${g===null?'—':(g>0?'+':'')+g}</div><div class="foot">${g===null?'両時点の確定測定が必要':'= 6か月後 − 初回'}</div></div>
+      </div>
+
+      <h2 class="sec" style="font-size:14px">🔎 対象測定：${focus.phase==='initial'?'初回':'6か月後'}（${fmtYm(focus.measuredMonth)}）</h2>
+      ${stageRail(focus)}
+      ${workflowButtons(focus)}
+
+      <h2 class="sec" style="font-size:14px;margin-top:16px">10項目 内訳（初回 ↔ 6か月後）</h2>
+      <div class="tblwrap" style="box-shadow:none"><table class="itemtable">
+        <thead><tr><th>項目</th><th class="num">初回 ${i?'('+fmtYm(i.measuredMonth)+')':''}</th><th class="num">6か月後 ${f?'('+fmtYm(f.measuredMonth)+')':''}</th><th class="num">差</th></tr></thead>
+        <tbody>${itemRows}
+          <tr style="font-weight:800;background:#fbfcfe"><td>合計</td><td class="num">${i?recTotal(i):'—'}</td><td class="num">${f?recTotal(f):'—'}</td><td class="num ${gcls}">${g===null?'—':(g>0?'+':'')+g}</td></tr>
+        </tbody></table></div>
+      ${focus.note?`<div class="scope" style="margin-top:12px">📝 特記：${esc(focus.note)}</div>`:''}
+
+      <h2 class="sec" style="font-size:14px;margin-top:16px">承認履歴（引継型・担当→リーダー→管理者）</h2>
+      <div class="timeline">${histHtml||'<div class="sub">履歴なし</div>'}</div>
+    </div>
+    <div class="mft">
+      <button class="btn btn-ghost" onclick="openInput('${u.id}','${focus.phase}')">この時点を編集/再入力</button>
+      <button class="btn btn-ghost" onclick="closeModal()">閉じる</button>
+    </div>`);
+}
+
+function stageRail(r){
+  return `<div class="rail">${STAGES.map((s,idx)=>{
+    const cur=r.status===s; const done=STAGE_ORDER[r.status]>STAGE_ORDER[s] || r.status==='approved'&&s==='approved';
+    const isDone=STAGE_ORDER[r.status]>=STAGE_ORDER[s] && !cur;
+    return `<div class="st ${cur?'cur':(isDone?'done':'')}"><div class="dot">${idx+1}</div><div class="nm">${STAGE_LABEL[s]}</div></div>${idx<STAGES.length-1?'<span class="arw">→</span>':''}`;
+  }).join('')}${r.status==='rejected'?'<span class="badge b-bad" style="margin-left:8px">差戻し中</span>':''}</div>`;
+}
+
+function workflowButtons(r){
+  const btns=[];
+  // 進める（引継型ゲート）
+  Object.entries(GATE).forEach(([act,g])=>{
+    if(r.status===g.from){
+      const allowed=ROLE===g.role;
+      btns.push(`<button class="btn ${g.cls} btn-sm" ${allowed?'':'disabled'}
+        title="${allowed?'':ROLE_LABEL[g.role]+'ロールのみ操作可'}"
+        onclick="doAdvance('${r.id}','${act}')">${g.label}${allowed?'':' 🔒'}</button>`);
+    }
+  });
+  // 差戻し（リーダー/管理者、submitted以降）
+  if((r.status==='submitted'||r.status==='reviewed') && (ROLE==='leader'||ROLE==='manager')){
+    btns.push(`<button class="btn btn-bad btn-sm" onclick="doReject('${r.id}')">差し戻す</button>`);
+  }
+  // 再開（差戻し→下書き, 担当）
+  if(r.status==='rejected' && ROLE==='staff'){
+    btns.push(`<button class="btn btn-ghost btn-sm" onclick="doReopen('${r.id}')">修正を再開</button>`);
+  }
+  const nextRole = r.status==='draft'?'担当が提出':r.status==='submitted'?'リーダーが確認':r.status==='reviewed'?'管理者が承認（任意）':r.status==='approved'?'完了':'担当が修正';
+  return `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:2px 0 4px">
+    ${btns.join('')||'<span class="chip">このロールで可能な操作はありません</span>'}
+    <span class="sub" style="margin-left:auto">次の担い手：<b>${nextRole}</b></span></div>`;
+}
+
+/* ---- ワークフロー操作（対象コレクション共有・案A方式：純粋に status を進める） ---- */
+function advanceRecord(recId,act){
+  const r=STATE.bi.find(x=>x.id===recId); const g=GATE[act];
+  if(!r||r.status!==g.from) return false;
+  if(ROLE!==g.role) return false;
+  r.status=g.to;
+  r.history.push({stage:g.to,by:ROLE_LABEL[ROLE],at:nowISO().slice(0,16),comment:g.label});
+  save(STATE); return true;
+}
+function doAdvance(recId,act){
+  const g=GATE[act]; const r=STATE.bi.find(x=>x.id===recId); const u=userById(r.userId);
+  confirmModal({title:g.label+'（承認ゲート）',
+    body:`<p><b>${esc(u.name)}</b> の${r.phase==='initial'?'初回':'6か月後'}測定（合計${recTotal(r)}点）を<br>
+      <span class="badge b-mut">${STAGE_LABEL[g.from]}</span> → <span class="badge b-brand">${STAGE_LABEL[g.to]}</span> に進めます。</p>
+      <p class="sub">操作ロール：${ROLE_LABEL[ROLE]}${g.to==='reviewed'?'<br>※確認済にすると加算集計・スケジュールの「確定測定」として扱われます。':''}</p>`,
+    okLabel:g.label, okCls:g.cls,
+    onOk:()=>{ if(advanceRecord(recId,act)){ closeModal(); renderNav(); render(); openDetail(r.userId,recId); toast(g.label+'ました'); } }});
+}
+function doReject(recId){
+  const r=STATE.bi.find(x=>x.id===recId); const u=userById(r.userId);
+  openModal(`<div class="mhd"><h3>差し戻し</h3><button class="x" onclick="closeModal()">✕</button></div>
+    <div class="mbd"><p><b>${esc(u.name)}</b> の測定を担当へ差し戻します。</p>
+      <div class="fld"><label>差戻し理由</label><textarea id="rjR" rows="3" placeholder="例：移乗の点数を再確認してください"></textarea></div></div>
+    <div class="mft"><button class="btn btn-ghost" onclick="closeModal()">キャンセル</button>
+      <button class="btn btn-bad" onclick="commitReject('${recId}')">差し戻す</button></div>`,'sm');
+}
+function commitReject(recId){
+  const r=STATE.bi.find(x=>x.id===recId); const reason=document.getElementById('rjR').value.trim();
+  r.status='rejected'; r.history.push({stage:'rejected',by:ROLE_LABEL[ROLE],at:nowISO().slice(0,16),comment:reason||'差し戻し'});
+  save(STATE); closeModal(); renderNav(); render(); openDetail(r.userId,recId); toast('差し戻しました');
+}
+function doReopen(recId){
+  const r=STATE.bi.find(x=>x.id===recId);
+  r.status='draft'; r.history.push({stage:'draft',by:ROLE_LABEL[ROLE],at:nowISO().slice(0,16),comment:'修正を再開'});
+  save(STATE); renderNav(); render(); openDetail(r.userId,recId); toast('下書きに戻しました');
+}
+
+/* =========================================================================
+   ルーター
+   ========================================================================= */
+function render(){
+  const app=document.getElementById('app');
+  app.innerHTML =
+    TAB==='dash' ? viewDash() :
+    TAB==='users'? viewUsers():
+    TAB==='input'? viewInput():
+    TAB==='addon'? viewAddon():
+    viewSched();
+}
+document.getElementById('roleSel').addEventListener('change',e=>{ ROLE=e.target.value; render();
+  toast('ロールを「'+ROLE_LABEL[ROLE]+'」に切替'); });
+document.getElementById('resetLink').addEventListener('click',e=>{
+  e.preventDefault();
+  confirmModal({title:'デモデータを初期化',okLabel:'初期化する',okCls:'btn-warn',
+    body:'<p>このブラウザ内のBI評価データをサンプル初期状態に戻します。<br><span class="sub">※他アプリのデータには影響しません。</span></p>',
+    onOk:()=>{ STATE=seedState(); save(STATE); closeModal(); renderNav(); render(); toast('デモデータを初期化しました'); }});
+});
+
+renderNav(); render();
+</script>
+</body>
+</html>

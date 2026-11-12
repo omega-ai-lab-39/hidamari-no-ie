@@ -1,0 +1,1090 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>介護デイ 月間勤務表(シフト)自動生成システム</title>
+<style>
+:root{
+  --bg:#ffffff; --panel:#ffffff; --ink:#1f2a37; --sub:#5b6b7b; --line:#e3e8ee;
+  --brand:#2563a8; --brand-weak:#eaf2fb; --accent:#0e7c66;
+  --ok:#1f9d55; --ok-bg:#e7f6ee; --warn:#d98a00; --warn-bg:#fdf3e0; --bad:#d64545; --bad-bg:#fceaea;
+  --shadow:0 1px 2px rgba(20,40,70,.06),0 8px 24px rgba(20,40,70,.06);
+  --radius:12px; --robot:#3b6ea5;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:#f4f7fb;color:var(--ink);font-family:"Segoe UI","Hiragino Kaku Gothic ProN","Yu Gothic UI",Meiryo,sans-serif;font-size:14px;line-height:1.6}
+a{color:var(--brand)}
+.app{max-width:1240px;margin:0 auto;padding:0 16px 80px}
+header.top{display:flex;align-items:center;gap:14px;padding:16px 4px 12px}
+.logo{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#2f6fb0,#0e7c66);color:#fff;display:grid;place-items:center;font-size:22px;box-shadow:var(--shadow)}
+.title h1{margin:0;font-size:18px;letter-spacing:.02em}
+.title p{margin:2px 0 0;color:var(--sub);font-size:12px}
+.spacer{flex:1}
+.badge{font-size:11px;color:var(--sub);border:1px solid var(--line);padding:3px 8px;border-radius:999px;background:#fff}
+
+/* approval bar */
+.approval{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:6px;box-shadow:var(--shadow)}
+.stage{display:flex;align-items:center;gap:7px;padding:5px 12px;border-radius:999px;color:var(--sub);font-size:12px;font-weight:600;white-space:nowrap}
+.stage .dot{width:18px;height:18px;border-radius:50%;background:#dfe6ee;color:#fff;display:grid;place-items:center;font-size:11px}
+.stage.active{background:var(--brand-weak);color:var(--brand)}
+.stage.active .dot{background:var(--brand)}
+.stage.done .dot{background:var(--ok)}
+.stage.done{color:var(--ok)}
+.stage-arrow{color:#c3cede;font-size:12px}
+
+/* tabs */
+nav.tabs{display:flex;gap:6px;margin:16px 0;flex-wrap:wrap}
+nav.tabs button{border:1px solid var(--line);background:#fff;color:var(--sub);padding:10px 16px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;transition:.15s}
+nav.tabs button .n{width:20px;height:20px;border-radius:6px;background:#eef2f7;color:var(--sub);display:grid;place-items:center;font-size:11px}
+nav.tabs button:hover{border-color:#c8d6e8}
+nav.tabs button.active{background:var(--brand);color:#fff;border-color:var(--brand);box-shadow:var(--shadow)}
+nav.tabs button.active .n{background:rgba(255,255,255,.25);color:#fff}
+
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;margin-bottom:16px}
+.panel h2{margin:0 0 4px;font-size:16px}
+.panel .lead{color:var(--sub);font-size:12.5px;margin:0 0 16px}
+.section-head{display:flex;align-items:center;gap:10px;margin:0 0 12px}
+.section-head h3{margin:0;font-size:14px}
+
+/* robot hint */
+.robot{display:flex;gap:12px;background:linear-gradient(180deg,#f2f8ff,#eef4fc);border:1px solid #d6e6f7;border-radius:12px;padding:12px 14px;margin-bottom:16px}
+.robot .ico{font-size:20px;line-height:1.2}
+.robot .body{font-size:12.5px;color:#274b6d}
+.robot .body b{color:var(--robot)}
+.robot ul{margin:6px 0 0;padding-left:18px}
+.robot li{margin:2px 0}
+
+/* buttons */
+.btn{border:1px solid var(--line);background:#fff;color:var(--ink);padding:9px 15px;border-radius:9px;cursor:pointer;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:7px}
+.btn:hover{border-color:#b9cbe0}
+.btn.primary{background:var(--brand);color:#fff;border-color:var(--brand)}
+.btn.primary:hover{background:#1f5590}
+.btn.accent{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn.ghost{background:#fff}
+.btn.danger{color:var(--bad);border-color:#f0c9c9}
+.btn.sm{padding:5px 10px;font-size:12px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+
+/* tables */
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:12.5px}
+th,td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;white-space:nowrap}
+th{background:#f7fafd;color:var(--sub);font-weight:700;position:sticky;top:0}
+tbody tr:hover{background:#fafcff}
+input,select{font-family:inherit;font-size:12.5px;border:1px solid var(--line);border-radius:7px;padding:6px 8px;background:#fff;color:var(--ink)}
+input:focus,select:focus{outline:2px solid var(--brand-weak);border-color:var(--brand)}
+input[type=checkbox]{width:16px;height:16px;accent-color:var(--brand)}
+.chips{display:flex;gap:4px;flex-wrap:wrap}
+.chip{font-size:11px;background:#eef2f7;border:1px solid var(--line);border-radius:999px;padding:2px 8px;color:var(--sub)}
+.chip.q{background:#e7f2ec;color:#0e7c66;border-color:#bfe0d1}
+.day-toggle{display:inline-flex;gap:3px}
+.day-toggle label{font-size:11px;border:1px solid var(--line);border-radius:6px;padding:3px 6px;cursor:pointer;color:var(--sub);user-select:none}
+.day-toggle input{display:none}
+.day-toggle input:checked+span{color:#fff}
+.day-toggle label:has(input:checked){background:var(--brand);border-color:var(--brand);color:#fff}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+@media(max-width:900px){.grid2,.grid3{grid-template-columns:1fr}}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:12px;color:var(--sub);font-weight:600;margin-bottom:4px}
+.field input,.field select{width:100%}
+.hint{font-size:11px;color:var(--sub);margin-top:3px}
+
+/* KPI + fill rate */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+@media(max-width:900px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px}
+.kpi .lbl{font-size:11px;color:var(--sub);font-weight:600}
+.kpi .val{font-size:24px;font-weight:800;margin-top:4px}
+.kpi .val small{font-size:12px;font-weight:600;color:var(--sub)}
+.tone-ok{color:var(--ok)} .tone-warn{color:var(--warn)} .tone-bad{color:var(--bad)}
+.bar{height:8px;border-radius:999px;background:#eef2f7;overflow:hidden;margin-top:8px}
+.bar > i{display:block;height:100%;border-radius:999px}
+
+/* calendar / month view */
+.cell-ok{background:var(--ok-bg)} .cell-warn{background:var(--warn-bg)} .cell-bad{background:var(--bad-bg)}
+.pill{display:inline-block;font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:999px}
+.pill.ok{background:var(--ok-bg);color:var(--ok)} .pill.warn{background:var(--warn-bg);color:var(--warn)} .pill.bad{background:var(--bad-bg);color:var(--bad)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--sub);margin:4px 0 14px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:12px;height:12px;border-radius:4px;display:inline-block}
+
+.shift-tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px;color:#fff}
+.mv-staff th, .mv-staff td{text-align:center}
+.mv-staff td.name{text-align:left;font-weight:600;position:sticky;left:0;background:#fff}
+.mv-staff th.name{text-align:left;position:sticky;left:0;z-index:2}
+.wknd{color:#c0392b}
+
+/* violations */
+.viol{display:flex;gap:10px;padding:11px 12px;border:1px solid var(--line);border-left-width:4px;border-radius:8px;margin-bottom:8px;background:#fff}
+.viol.err{border-left-color:var(--bad)} .viol.err .vi{color:var(--bad)}
+.viol.warn{border-left-color:var(--warn)} .viol.warn .vi{color:var(--warn)}
+.viol .vi{font-size:16px}
+.viol .vt{font-weight:700;font-size:12.5px}
+.viol .vs{font-size:12px;color:var(--sub)}
+.empty{text-align:center;color:var(--sub);padding:26px;font-size:13px}
+.ok-banner{display:flex;align-items:center;gap:10px;background:var(--ok-bg);border:1px solid #bfe4cd;color:#14663a;border-radius:10px;padding:12px 14px;font-weight:700;font-size:13px}
+
+/* modal */
+.modal-mask{position:fixed;inset:0;background:rgba:(20,30,45,.42);background:rgba(20,30,45,.42);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
+.modal-mask.show{display:flex}
+.modal{background:#fff;border-radius:14px;max-width:440px;width:100%;box-shadow:0 20px 60px rgba(20,40,70,.3);overflow:hidden;animation:pop .16s ease}
+@keyframes pop{from{transform:translateY(8px) scale(.98);opacity:0}to{transform:none;opacity:1}}
+.modal .mh{padding:18px 20px 6px;font-size:16px;font-weight:800;display:flex;align-items:center;gap:9px}
+.modal .mb{padding:2px 20px 8px;color:var(--sub);font-size:13px}
+.modal .mf{padding:14px 20px 18px;display:flex;justify-content:flex-end;gap:8px}
+
+/* toast */
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);background:#1f2a37;color:#fff;padding:11px 18px;border-radius:10px;font-size:13px;font-weight:600;box-shadow:0 10px 30px rgba(0,0,0,.25);opacity:0;transition:.25s;z-index:60;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.locknote{font-size:11px;color:var(--warn);font-weight:600}
+footer{color:var(--sub);font-size:11px;text-align:center;padding:20px}
+.hidden{display:none!important}
+.rowflex{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.num{width:64px}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="logo">🗓️</div>
+    <div class="title">
+      <h1>介護デイ 月間勤務表(シフト)自動生成システム</h1>
+      <p>仕様駆動MVP / ルールベース生成＋制約検証 / データはこの端末に保存(localStorage)</p>
+    </div>
+    <div class="spacer"></div>
+    <div class="badge" id="periodBadge">対象月 —</div>
+  </header>
+
+  <!-- 承認段階ゲート(引継型:作成→確認→確定) -->
+  <div class="approval" id="approvalBar"></div>
+
+  <nav class="tabs" id="tabs">
+    <button data-tab="staff" class="active"><span class="n">1</span>スタッフ設定</button>
+    <button data-tab="rules"><span class="n">2</span>シフト条件設定</button>
+    <button data-tab="generate"><span class="n">3</span>勤務表生成</button>
+    <button data-tab="check"><span class="n">4</span>制約チェック</button>
+    <button data-tab="month"><span class="n">5</span>月間ビュー</button>
+  </nav>
+
+  <!-- ============ 1. スタッフ設定 ============ -->
+  <section id="tab-staff" class="tab-body">
+    <div class="panel">
+      <h2>① スタッフ設定</h2>
+      <p class="lead">雇用形態・保有資格・勤務可能曜日・希望休・夜勤可否を登録します。すべて可変(ハードコードなし)。</p>
+      <div class="robot">
+        <div class="ico">🤖</div>
+        <div class="body">
+          <b>AIポイント</b>：勤務(早番/日勤/遅番)に加え、朝昼夕の送迎便には「送迎(運転)可」の職員が必要です。運転可を複数名確保すると安定します。
+          <ul id="robotStaff"></ul>
+        </div>
+      </div>
+      <div class="toolbar">
+        <button class="btn primary" id="addStaff">＋ スタッフ追加</button>
+        <button class="btn ghost" id="loadSample">サンプル10名を再読込</button>
+        <span class="spacer"></span>
+        <span class="badge">常勤 <b id="cntFull">0</b> / 非常勤 <b id="cntPart">0</b> / 有資格 <b id="cntQual">0</b> / 送迎可 <b id="cntDrive">0</b></span>
+      </div>
+      <div class="tbl-wrap">
+        <table id="staffTable">
+          <thead>
+            <tr>
+              <th>氏名</th><th>雇用形態</th><th>保有資格</th><th>勤務可能曜日</th><th>希望休(日)</th><th>担当区分</th><th></th>
+            </tr>
+          </thead>
+          <tbody id="staffBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 2. シフト条件設定 ============ -->
+  <section id="tab-rules" class="tab-body hidden">
+    <div class="panel">
+      <h2>② シフト条件設定</h2>
+      <p class="lead">対象月・シフト区分ごとの必要人数/有資格者最低数・全体ルールを設定します。</p>
+      <div class="robot">
+        <div class="ico">🤖</div>
+        <div class="body">
+          <b>AIポイント</b>：<span id="robotRules">必要延べ人数と登録スタッフの供給可能数を比較して、不足を事前に警告します。</span>
+        </div>
+      </div>
+
+      <div class="grid3">
+        <div class="field">
+          <label>対象年</label>
+          <input type="number" id="cfgYear" min="2024" max="2030">
+        </div>
+        <div class="field">
+          <label>対象月</label>
+          <select id="cfgMonth"></select>
+        </div>
+        <div class="field">
+          <label>営業日</label>
+          <select id="cfgBiz">
+            <option value="all">毎日営業</option>
+            <option value="mon-sat">月〜土(日曜休業)</option>
+            <option value="weekday">平日のみ(土日休業)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="section-head"><h3>利用者数と配置基準（利用者に応じて必要人数を自動調整）</h3></div>
+      <div class="grid3" style="margin-bottom:6px">
+        <div class="field">
+          <label>標準利用者数(1日あたり)</label>
+          <input type="number" id="cfgUsers" min="0" max="200"> <span class="hint">名</span>
+        </div>
+        <div class="field">
+          <label>配置基準(利用者◯名につき職員1名)</label>
+          <input type="number" id="cfgRatio" min="1" max="30"> <span class="hint">名/職員1名</span>
+        </div>
+        <div class="field">
+          <label>自動算出</label>
+          <label class="rowflex" style="font-weight:400;cursor:pointer"><input type="checkbox" id="cfgAuto"> <span>利用者数から「日勤」の必要人数を自動計算</span></label>
+          <span class="hint" id="ratioNote"></span>
+        </div>
+      </div>
+
+      <div class="section-head"><h3>シフト区分(勤務／送迎・必要人数・有資格最低数)</h3></div>
+      <div class="tbl-wrap" style="margin-bottom:18px">
+        <table id="shiftTable">
+          <thead><tr><th>区分</th><th>種別</th><th>時間帯</th><th>色</th><th>必要人数</th><th>有資格者 最低数</th><th>利用者連動</th></tr></thead>
+          <tbody id="shiftBody"></tbody>
+        </table>
+      </div>
+
+      <div class="section-head"><h3>全体ルール</h3></div>
+      <div class="grid3">
+        <div class="field">
+          <label>連続勤務の上限(連勤)</label>
+          <input type="number" id="rMaxCons" min="1" max="14"> <span class="hint">日まで連続可</span>
+        </div>
+        <div class="field">
+          <label>週の休日数(最低)</label>
+          <input type="number" id="rWeekOff" min="0" max="7"> <span class="hint">7日あたり</span>
+        </div>
+        <div class="field">
+          <label>送迎の兼務</label>
+          <label class="rowflex" style="font-weight:400;cursor:pointer"><input type="checkbox" id="rOverlap"> <span>勤務中の職員も送迎便に充てる</span></label>
+          <span class="hint">送迎は短時間のため勤務と兼務するのが一般的です</span>
+        </div>
+      </div>
+
+      <div class="section-head"><h3>NG組合せ(同一シフトに一緒に入れない)</h3></div>
+      <div id="ngList"></div>
+      <div class="rowflex" style="margin-top:8px">
+        <select id="ngA"></select><span>×</span><select id="ngB"></select>
+        <button class="btn sm" id="addNg">＋ NG追加</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 3. 勤務表生成 ============ -->
+  <section id="tab-generate" class="tab-body hidden">
+    <div class="panel">
+      <h2>③ 勤務表生成</h2>
+      <p class="lead">ルールベースで各シフト枠を自動充足します。生成後に④で違反を検証してください。</p>
+      <div class="robot">
+        <div class="ico">🤖</div>
+        <div class="body">
+          <b>AIポイント</b>：<span id="robotGen">希望休・送迎(運転)可否・連勤上限・週休を守りつつ、有資格者を優先配置します。利用者数の多い日は「日勤」の必要人数が自動で増え、足りなければ「不足」として色分け表示します。</span>
+        </div>
+      </div>
+
+      <!-- 利用者に応じた調整：日別の利用者数を編集 -->
+      <div class="section-head" style="justify-content:space-between">
+        <h3 style="margin:0">利用者数の日別調整（利用者に応じて必要人数が変わります）</h3>
+        <button class="btn sm ghost" id="toggleUsers">開閉</button>
+      </div>
+      <div id="usersPanel">
+        <div class="toolbar" style="margin-bottom:8px">
+          <span class="hint">標準 <b id="usDefault">–</b>名／配置基準 利用者<b id="usRatio">–</b>名に職員1名。行事日などは個別に増減できます。</span>
+          <span class="spacer"></span>
+          <button class="btn sm ghost" id="usReset">標準に戻す</button>
+        </div>
+        <div class="tbl-wrap"><table id="usersTable"><tbody></tbody></table></div>
+      </div>
+
+      <div class="toolbar" style="margin-top:14px">
+        <button class="btn primary" id="genBtn">⚙️ 勤務表を自動生成</button>
+        <button class="btn ghost" id="clearGen" disabled>クリア</button>
+        <span class="spacer"></span>
+        <span class="locknote hidden" id="genLock">🔒 確定済みのため再生成は「確定解除」後に可能です</span>
+      </div>
+
+      <div id="genResult" class="hidden">
+        <div class="kpis">
+          <div class="kpi"><div class="lbl">全体 充足率</div><div class="val" id="kFill">–</div><div class="bar"><i id="kFillBar"></i></div></div>
+          <div class="kpi"><div class="lbl">充足コマ</div><div class="val tone-ok" id="kOk">–</div></div>
+          <div class="kpi"><div class="lbl">注意コマ</div><div class="val tone-warn" id="kWarn">–</div></div>
+          <div class="kpi"><div class="lbl">不足コマ</div><div class="val tone-bad" id="kBad">–</div></div>
+        </div>
+        <div class="legend">
+          <span><i class="sw" style="background:var(--ok)"></i>充足(必要人数・有資格ともに100%)</span>
+          <span><i class="sw" style="background:var(--warn)"></i>注意(人数OKだが有資格や条件に懸念)</span>
+          <span><i class="sw" style="background:var(--bad)"></i>不足(必要人数に到達せず)</span>
+        </div>
+        <div class="tbl-wrap">
+          <table id="genTable"><thead id="genHead"></thead><tbody id="genBody"></tbody></table>
+        </div>
+      </div>
+      <div id="genEmpty" class="empty">まだ生成していません。「⚙️ 勤務表を自動生成」を押してください。</div>
+    </div>
+  </section>
+
+  <!-- ============ 4. 制約チェック ============ -->
+  <section id="tab-check" class="tab-body hidden">
+    <div class="panel">
+      <h2>④ 制約チェック</h2>
+      <p class="lead">配置人数割れ / 資格要件未達 / 連勤オーバー / 希望休無視 をコード側で検証し、警告一覧に出します。</p>
+      <div class="robot">
+        <div class="ico">🤖</div>
+        <div class="body">
+          <b>AIポイント</b>：<span id="robotCheck">エラー(赤)は確定前に必ず解消を。警告(黄)は運用判断で許容可能です。1クリックでCSV/印刷に出せます。</span>
+        </div>
+      </div>
+      <div class="kpis" style="grid-template-columns:repeat(3,1fr)">
+        <div class="kpi"><div class="lbl">エラー(要対応)</div><div class="val tone-bad" id="cErr">–</div></div>
+        <div class="kpi"><div class="lbl">警告(要確認)</div><div class="val tone-warn" id="cWarn">–</div></div>
+        <div class="kpi"><div class="lbl">検証コマ数</div><div class="val" id="cTotal">–</div></div>
+      </div>
+      <div class="toolbar">
+        <button class="btn ghost" id="reCheck">🔁 再検証</button>
+        <span class="spacer"></span>
+        <span class="badge" id="checkStamp">未検証</span>
+      </div>
+      <div id="violList"></div>
+    </div>
+  </section>
+
+  <!-- ============ 5. 月間ビュー ============ -->
+  <section id="tab-month" class="tab-body hidden">
+    <div class="panel">
+      <h2>⑤ 月間ビュー</h2>
+      <p class="lead">スタッフ別の月間勤務表。CSV出力・印刷に対応。確定後はこの表を配布できます。</p>
+      <div class="robot">
+        <div class="ico">🤖</div>
+        <div class="body">
+          <b>AIポイント</b>：<span id="robotMonth">1人あたりの勤務日数・送迎回数・連勤の偏りを自動集計。連勤上限を超えたスタッフは行末に⚠️表示します。●=有資格 / 🚐=送迎(運転)可。</span>
+        </div>
+      </div>
+      <div class="toolbar">
+        <button class="btn accent" id="csvStaff">⬇ スタッフ別CSV</button>
+        <button class="btn accent" id="csvShift">⬇ シフト別CSV</button>
+        <button class="btn ghost" id="printBtn">🖨 印刷</button>
+        <span class="spacer"></span>
+        <span class="badge" id="monthStamp">—</span>
+      </div>
+      <div class="legend" id="monthLegend"></div>
+      <div class="tbl-wrap">
+        <table class="mv-staff" id="monthTable"><thead id="monthHead"></thead><tbody id="monthBody"></tbody></table>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    介護デイ シフト生成システム(モックMVP) ／ STORE_KEY: <code id="storeKeyLabel"></code> ／ 全条件は設定で可変・サービス連携なし
+  </footer>
+</div>
+
+<!-- modal (confirm禁止・独自モーダル) -->
+<div class="modal-mask" id="modalMask">
+  <div class="modal">
+    <div class="mh" id="modalTitle">確認</div>
+    <div class="mb" id="modalBody"></div>
+    <div class="mf" id="modalFoot"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* =====================================================================
+   STORE_KEY 昇格：バージョン付き恒久キー。旧キーがあれば自動移行(昇格)。
+   ===================================================================== */
+const STORE_KEY = 'kaigo_shift_schedule_v3';
+const LEGACY_KEYS = ['kaigo_shift_v0','shift_scheduler','kaigo_shift'];
+
+const DOW = ['日','月','火','水','木','金','土'];
+/* 保有資格：PT/OT/介護/看護（機能訓練指導員は資格名ではなく配置役割のため資格リストから除外） */
+const QUALS = ['PT','OT','介護','看護'];
+const EMP = ['常勤','非常勤','パート'];
+/* 担当区分：both=勤務+送迎 / work=勤務のみ(送迎不可) / transport=送迎のみ(勤務なし) */
+const ROLES = [['both','勤務+送迎'],['work','勤務のみ'],['transport','送迎のみ']];
+
+/* ---------- default (可変) settings ---------- */
+/* kind: 'work'=勤務区分 / 'transport'=送迎区分。primary:true の区分は利用者数に応じて必要人数を自動算出 */
+function defaultShiftTypes(){
+  return [
+    {id:'e', name:'早番', time:'7:30-16:30', color:'#f0a202', kind:'work', required:1, reqQual:1, primary:false},
+    {id:'d', name:'日勤', time:'9:00-18:00', color:'#2f80c4', kind:'work', required:2, reqQual:1, primary:true},
+    {id:'l', name:'遅番', time:'10:30-19:30',color:'#8e5cc4', kind:'work', required:1, reqQual:1, primary:false},
+    {id:'tm',name:'朝送迎', time:'8:00-9:00', color:'#0e8a6a', kind:'transport', required:2, reqQual:0, primary:false},
+    {id:'tn',name:'昼送迎', time:'12:00-13:00',color:'#5a9e4b', kind:'transport', required:1, reqQual:0, primary:false},
+    {id:'te',name:'夕送迎', time:'16:00-17:00',color:'#c98a2b', kind:'transport', required:2, reqQual:0, primary:false},
+  ];
+}
+function defaultRules(){
+  return {maxCons:5, weekOff:2, transportOverlap:true, ngPairs:[]};
+}
+function sampleStaff(){
+  // sample 10名(8-12の範囲)  [氏名, 雇用形態, 保有資格, 勤務可能曜日, 希望休, 担当区分]
+  const s = [
+    ['田中 美咲','常勤',['介護'],[1,2,3,4,5],[],'both'],       // 送迎できる常勤
+    ['佐藤 健一','常勤',['介護'],[1,2,3,4,5,6],[15],'both'],
+    ['鈴木 由紀','常勤',['PT'],[1,2,3,4,5],[],'work'],         // 機能訓練(PT)・送迎なし
+    ['高橋 亮','非常勤',['介護'],[2,3,4,5,6],[3,4],'both'],
+    ['伊藤 さくら','パート',[],[1,3,5],[],'transport'],         // 送迎のみ
+    ['渡辺 大輔','常勤',['介護'],[2,3,4,5,6],[20],'both'],
+    ['山本 千夏','非常勤',['OT'],[1,2,4,6],[10,11],'work'],     // 機能訓練(OT)・送迎なし
+    ['中村 翔','パート',[],[1,2,3,4,5,6],[],'transport'],        // 送迎のみ(専従ドライバー)
+    ['小林 恵','常勤',['看護'],[1,2,3,4,5],[],'work'],          // 看護・送迎なし
+    ['加藤 直人','非常勤',['介護'],[1,3,4,5,6],[25],'both'],
+  ];
+  return s.map((r,i)=>({
+    id:'s'+(i+1), name:r[0], emp:r[1], quals:r[2], days:r[3], off:r[4], role:r[5]
+  }));
+}
+
+/* ---------- state ---------- */
+let state = null;
+function freshState(){
+  const now = new Date();
+  return {
+    v:1,
+    staff: sampleStaff(),
+    shiftTypes: defaultShiftTypes(),
+    rules: defaultRules(),
+    cfg: {year: now.getFullYear(), month: now.getMonth()+1, biz:'mon-sat',
+          usersDefault:18, ratio:9, autoStaffing:true, usersByDate:{}},
+    schedule: null,       // {days:[{date,dow,cells:{shiftId:[staffId..]}}], meta}
+    approval: 'edit',     // edit -> draft(作成) -> confirmed(確認) -> finalized(確定)
+    checkResult: null,
+  };
+}
+function load(){
+  let raw = localStorage.getItem(STORE_KEY);
+  if(!raw){ // STORE_KEY昇格：旧キーから移行
+    for(const k of LEGACY_KEYS){
+      const old = localStorage.getItem(k);
+      if(old){ raw = old; localStorage.setItem(STORE_KEY, old); localStorage.removeItem(k); break; }
+    }
+  }
+  if(raw){
+    try{ state = JSON.parse(raw); }catch(e){ state = freshState(); }
+  }else{ state = freshState(); }
+  // 後方互換の穴埋め
+  const f = freshState();
+  for(const k of Object.keys(f)) if(state[k]===undefined) state[k]=f[k];
+}
+function save(){ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
+
+/* ---------- helpers ---------- */
+const $ = s=>document.querySelector(s);
+const $$ = s=>[...document.querySelectorAll(s)];
+function el(tag,cls,html){const e=document.createElement(tag);if(cls)e.className=cls;if(html!=null)e.innerHTML=html;return e;}
+function staffById(id){return state.staff.find(s=>s.id===id);}
+function shiftById(id){return state.shiftTypes.find(s=>s.id===id);}
+function isQualified(st){return st.quals && st.quals.length>0;}
+function canDrive(st){return st.role==='both' || st.role==='transport';}   // 送迎可(送迎のみ含む)
+function canWork(st){return st.role!=='transport';}                        // 勤務可(送迎のみは勤務に入らない)
+function daysInMonth(y,m){return new Date(y,m,0).getDate();}
+function bizOpen(dow,biz){ if(biz==='all')return true; if(biz==='mon-sat')return dow!==0; if(biz==='weekday')return dow!==0&&dow!==6; return true;}
+/* 対象日の利用者数(日別上書き優先→標準値) */
+function usersFor(date){ const o=state.cfg.usersByDate||{}; return (o[date]!=null? o[date] : state.cfg.usersDefault); }
+/* 利用者数に応じた必要人数：primary区分は「利用者÷配置基準(切上)」を下限に自動算出 */
+function effRequired(st,date){
+  let req = st.required;
+  if(state.cfg.autoStaffing && st.primary){ req = Math.max(req, Math.ceil(usersFor(date)/Math.max(1,state.cfg.ratio))); }
+  return req;
+}
+const workShifts=()=>state.shiftTypes.filter(s=>s.kind!=='transport');
+const transportShifts=()=>state.shiftTypes.filter(s=>s.kind==='transport');
+
+/* ---------- toast & modal ---------- */
+let toastT;
+function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2200);}
+function modal({title,body,confirmText='OK',cancelText='キャンセル',danger=false,onConfirm}){
+  $('#modalTitle').innerHTML = title;
+  $('#modalBody').innerHTML = body;
+  const foot = $('#modalFoot'); foot.innerHTML='';
+  const cancel = el('button','btn ghost',cancelText);
+  const ok = el('button','btn '+(danger?'danger':'primary'),confirmText);
+  cancel.onclick = closeModal;
+  ok.onclick = ()=>{ closeModal(); onConfirm&&onConfirm(); };
+  if(cancelText) foot.appendChild(cancel);
+  foot.appendChild(ok);
+  $('#modalMask').classList.add('show');
+}
+function closeModal(){ $('#modalMask').classList.remove('show'); }
+$('#modalMask').addEventListener('click',e=>{ if(e.target.id==='modalMask') closeModal(); });
+
+/* =====================================================================
+   承認段階ゲート(引継型：作成→確認→確定)
+   edit: まだ生成前 / draft:作成 / confirmed:確認 / finalized:確定(ロック)
+   ===================================================================== */
+const STAGES = [
+  {key:'draft',    label:'作成', desc:'自動生成して下書きを作る'},
+  {key:'confirmed',label:'確認', desc:'違反ゼロを確認して引継ぐ'},
+  {key:'finalized',label:'確定', desc:'配布用として確定・ロック'},
+];
+function stageIndex(){ return {edit:-1,draft:0,confirmed:1,finalized:2}[state.approval]; }
+function renderApproval(){
+  const bar = $('#approvalBar'); bar.innerHTML='';
+  const idx = stageIndex();
+  STAGES.forEach((s,i)=>{
+    if(i>0) bar.appendChild(el('span','stage-arrow','➜'));
+    const cls = i<idx?'stage done': i===idx?'stage active':'stage';
+    const st = el('div',cls);
+    st.innerHTML = `<span class="dot">${i<idx?'✓':i+1}</span>${s.label}`;
+    st.title = s.desc;
+    bar.appendChild(st);
+  });
+  const btnWrap = el('div','',''); btnWrap.style.marginLeft='auto'; btnWrap.style.display='flex'; btnWrap.style.gap='6px';
+  // 引継ボタン：現段階から次段階へ
+  if(state.approval==='draft'){
+    const b=el('button','btn sm primary','確認へ引継ぐ ➜'); b.onclick=()=>gate('confirmed'); btnWrap.appendChild(b);
+  }else if(state.approval==='confirmed'){
+    const back=el('button','btn sm ghost','◀ 作成へ戻す'); back.onclick=()=>{state.approval='draft';save();renderApproval();}; btnWrap.appendChild(back);
+    const b=el('button','btn sm accent','確定する ✓'); b.onclick=()=>gate('finalized'); btnWrap.appendChild(b);
+  }else if(state.approval==='finalized'){
+    const b=el('button','btn sm ghost','🔓 確定解除'); b.onclick=()=>{
+      modal({title:'🔓 確定を解除しますか？',body:'再生成・編集が可能になります。配布済みの場合はご注意ください。',confirmText:'解除する',danger:true,onConfirm:()=>{state.approval='confirmed';save();renderApproval();syncLocks();toast('確定を解除しました');}});
+    }; btnWrap.appendChild(b);
+  }
+  bar.appendChild(btnWrap);
+}
+function gate(target){
+  if(target==='confirmed'){
+    const r = runCheck(true);
+    if(!state.schedule){ toast('先に勤務表を生成してください'); return; }
+    if(r.errors>0){
+      modal({title:'⚠️ エラーが残っています',
+        body:`配置割れ・資格未達などの<b>エラーが${r.errors}件</b>あります。確認段階へ引継ぐには制約チェック(④)での解消を推奨します。<br>このまま引継ぎますか？`,
+        confirmText:'このまま確認へ',danger:true,
+        onConfirm:()=>{ state.approval='confirmed'; save(); renderApproval(); syncLocks(); toast('確認段階へ引継ぎました'); switchTab('check'); }});
+      return;
+    }
+    state.approval='confirmed'; save(); renderApproval(); syncLocks(); toast('確認段階へ引継ぎました'); switchTab('check');
+  }else if(target==='finalized'){
+    modal({title:'✓ 勤務表を確定しますか？',
+      body:'確定すると勤務表がロックされ、スタッフ設定・条件変更・再生成ができなくなります(確定解除で再開可)。配布用として月間ビュー(⑤)から出力できます。',
+      confirmText:'確定してロック',
+      onConfirm:()=>{ state.approval='finalized'; save(); renderApproval(); syncLocks(); toast('勤務表を確定しました 🎉'); switchTab('month'); }});
+  }
+}
+function syncLocks(){
+  const locked = state.approval==='finalized';
+  $('#genLock').classList.toggle('hidden', !locked);
+  $('#genBtn').disabled = locked;
+  // 設定系入力のロック
+  $$('#staffBody input,#staffBody select,#shiftBody input,#shiftBody select,#rMaxCons,#rWeekOff,#rOverlap,#cfgYear,#cfgMonth,#cfgBiz,#cfgUsers,#cfgRatio,#cfgAuto,#addStaff,#loadSample,#addNg,#ngA,#ngB,#usersTable input,#usReset')
+    .forEach(e=>{ e.disabled = locked; });
+}
+
+/* =====================================================================
+   TAB switching
+   ===================================================================== */
+function switchTab(name){
+  $$('#tabs button').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));
+  $$('.tab-body').forEach(s=>s.classList.add('hidden'));
+  $('#tab-'+name).classList.remove('hidden');
+  if(name==='check') renderCheck();
+  if(name==='month') renderMonth();
+  if(name==='generate') renderGen();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+$('#tabs').addEventListener('click',e=>{const b=e.target.closest('button');if(b)switchTab(b.dataset.tab);});
+
+/* =====================================================================
+   1. スタッフ設定 render
+   ===================================================================== */
+function renderStaff(){
+  const tb=$('#staffBody'); tb.innerHTML='';
+  state.staff.forEach(s=>{
+    const tr=el('tr');
+    // name
+    tr.appendChild(tdInput(s,'name','text'));
+    // emp
+    const tdE=el('td'); const sel=el('select'); EMP.forEach(o=>{const op=el('option',null,o);op.value=o;if(o===s.emp)op.selected=true;sel.appendChild(op);}); sel.onchange=()=>{s.emp=sel.value;markDirty();renderStaffStats();}; tdE.appendChild(sel); tr.appendChild(tdE);
+    // quals
+    const tdQ=el('td'); const wrap=el('div','chips');
+    QUALS.forEach(q=>{
+      const lb=el('label','chip'+(s.quals.includes(q)?' q':''),q); lb.style.cursor='pointer';
+      lb.onclick=()=>{ if(s.quals.includes(q))s.quals=s.quals.filter(x=>x!==q); else s.quals.push(q); markDirty(); renderStaff(); renderStaffStats(); };
+      wrap.appendChild(lb);
+    });
+    tdQ.appendChild(wrap); tr.appendChild(tdQ);
+    // days
+    const tdD=el('td'); const dt=el('div','day-toggle');
+    DOW.forEach((d,i)=>{ const lb=el('label'); const cb=el('input');cb.type='checkbox';cb.checked=s.days.includes(i); cb.onchange=()=>{ if(cb.checked){if(!s.days.includes(i))s.days.push(i);} else s.days=s.days.filter(x=>x!==i); markDirty(); }; const sp=el('span',(i===0||i===6)?'wknd':'' ,d); lb.appendChild(cb);lb.appendChild(sp); dt.appendChild(lb); });
+    tdD.appendChild(dt); tr.appendChild(tdD);
+    // off (days list)
+    const tdO=el('td'); const inp=el('input');inp.type='text';inp.className='';inp.style.width='120px';inp.placeholder='例:3,15,20';inp.value=s.off.join(','); inp.onchange=()=>{ s.off = inp.value.split(',').map(x=>parseInt(x.trim())).filter(x=>!isNaN(x)); markDirty(); }; tdO.appendChild(inp); tr.appendChild(tdO);
+    // role (担当区分: 勤務+送迎 / 勤務のみ / 送迎のみ)
+    const tdN=el('td'); const rsel=el('select'); ROLES.forEach(([v,l])=>{const o=el('option',null,l);o.value=v;if((s.role||'both')===v)o.selected=true;rsel.appendChild(o);}); rsel.onchange=()=>{s.role=rsel.value;markDirty();renderStaffStats();renderRobotStaff();}; tdN.appendChild(rsel); tr.appendChild(tdN);
+    // del
+    const tdX=el('td'); const bx=el('button','btn sm danger','削除'); bx.onclick=()=>{ modal({title:'スタッフを削除',body:`「${s.name}」を削除しますか？`,confirmText:'削除',danger:true,onConfirm:()=>{state.staff=state.staff.filter(x=>x.id!==s.id);markDirty();renderStaff();renderStaffStats();buildNgSelectors();}}); }; tdX.appendChild(bx); tr.appendChild(tdX);
+    tb.appendChild(tr);
+  });
+  renderStaffStats();
+  renderRobotStaff();
+}
+function tdInput(obj,key,type){ const td=el('td'); const i=el('input'); i.type=type; i.value=obj[key]; i.onchange=()=>{obj[key]=i.value;markDirty();renderStaffStats();buildNgSelectors();}; td.appendChild(i); return td; }
+function renderStaffStats(){
+  $('#cntFull').textContent = state.staff.filter(s=>s.emp==='常勤').length;
+  $('#cntPart').textContent = state.staff.filter(s=>s.emp!=='常勤').length;
+  $('#cntQual').textContent = state.staff.filter(isQualified).length;
+  $('#cntDrive').textContent = state.staff.filter(canDrive).length;
+}
+function renderRobotStaff(){
+  const ul=$('#robotStaff'); ul.innerHTML='';
+  const drivers = state.staff.filter(canDrive).length;
+  const transOnly = state.staff.filter(s=>s.role==='transport').length;
+  const transNeed = transportShifts().reduce((a,s)=>Math.max(a,s.required),0);
+  const total=state.staff.length;
+  const msgs=[];
+  msgs.push(`現在 <b>${total}名</b> 登録(推奨 8〜12名)。有資格者 <b>${state.staff.filter(isQualified).length}名</b>(PT/OT/介護/看護)。`);
+  msgs.push(drivers>=Math.max(2,transNeed+1)?`送迎可 <b>${drivers}名</b>(うち送迎のみ <b>${transOnly}名</b>)：朝昼夕の送迎便を無理なく回せます。`:`送迎可が <b>${drivers}名</b> と少なめ。送迎人数割れに注意（1便最大${transNeed}名必要）。`);
+  msgs.push(`担当区分で「送迎のみ」の職員は勤務(早番/日勤/遅番)には配置されず、送迎便だけに入ります。`);
+  msgs.forEach(m=>{const li=el('li',null,m);ul.appendChild(li);});
+}
+$('#addStaff').onclick=()=>{
+  const n=state.staff.length+1;
+  state.staff.push({id:'s'+Date.now(),name:'新規スタッフ'+n,emp:'非常勤',quals:[],days:[1,2,3,4,5],off:[],role:'both'});
+  markDirty();renderStaff();buildNgSelectors();
+};
+$('#loadSample').onclick=()=>{
+  modal({title:'サンプル読込',body:'現在のスタッフ一覧をサンプル10名で置き換えます。よろしいですか？',confirmText:'読み込む',onConfirm:()=>{state.staff=sampleStaff();markDirty();renderStaff();buildNgSelectors();toast('サンプル10名を読み込みました');}});
+};
+
+/* =====================================================================
+   2. シフト条件設定 render
+   ===================================================================== */
+function renderRules(){
+  // year/month/biz
+  $('#cfgYear').value = state.cfg.year;
+  const ms=$('#cfgMonth'); ms.innerHTML=''; for(let m=1;m<=12;m++){const o=el('option',null,m+'月');o.value=m;if(m===state.cfg.month)o.selected=true;ms.appendChild(o);}
+  $('#cfgBiz').value = state.cfg.biz;
+  $('#cfgYear').onchange=e=>{state.cfg.year=+e.target.value;markDirty();updatePeriodBadge();renderRobotRules();};
+  ms.onchange=e=>{state.cfg.month=+e.target.value;markDirty();updatePeriodBadge();renderRobotRules();};
+  $('#cfgBiz').onchange=e=>{state.cfg.biz=e.target.value;markDirty();renderRobotRules();};
+
+  // 利用者数・配置基準
+  $('#cfgUsers').value=state.cfg.usersDefault; $('#cfgUsers').onchange=e=>{state.cfg.usersDefault=Math.max(0,+e.target.value);markDirty();renderRules();};
+  $('#cfgRatio').value=state.cfg.ratio; $('#cfgRatio').onchange=e=>{state.cfg.ratio=Math.max(1,+e.target.value);markDirty();renderRules();};
+  $('#cfgAuto').checked=state.cfg.autoStaffing; $('#cfgAuto').onchange=e=>{state.cfg.autoStaffing=e.target.checked;markDirty();renderRules();};
+  const primaryName=(state.shiftTypes.find(s=>s.primary)||{}).name||'主要勤務';
+  $('#ratioNote').innerHTML = state.cfg.autoStaffing
+    ? `→ 利用者${state.cfg.usersDefault}名 ÷ ${state.cfg.ratio} = <b>${Math.ceil(state.cfg.usersDefault/Math.max(1,state.cfg.ratio))}名</b> を「${primaryName}」の必要人数に自動設定`
+    : '自動算出はオフ。必要人数は下表の値を使用します。';
+
+  // shift types
+  const sb=$('#shiftBody'); sb.innerHTML='';
+  state.shiftTypes.forEach(st=>{
+    const tr=el('tr');
+    tr.appendChild(cellText(st,'name'));
+    // 種別
+    const tdk=el('td'); const ksel=el('select'); [['work','勤務'],['transport','送迎']].forEach(([v,l])=>{const o=el('option',null,l);o.value=v;if((st.kind||'work')===v)o.selected=true;ksel.appendChild(o);}); ksel.onchange=()=>{st.kind=ksel.value;if(st.kind==='transport')st.reqQual=0;markDirty();renderRules();}; tdk.appendChild(ksel); tr.appendChild(tdk);
+    tr.appendChild(cellText(st,'time'));
+    const tdc=el('td'); const ci=el('input');ci.type='color';ci.value=st.color;ci.style.width='44px';ci.style.padding='2px';ci.onchange=()=>{st.color=ci.value;markDirty();}; tdc.appendChild(ci); tr.appendChild(tdc);
+    tr.appendChild(cellNum(st,'required',0,20));
+    tr.appendChild(cellNum(st,'reqQual',0,20));
+    // 利用者連動(primary)
+    const tdp=el('td'); const cb=el('input');cb.type='checkbox';cb.checked=!!st.primary;cb.disabled=(st.kind==='transport');cb.onchange=()=>{ state.shiftTypes.forEach(x=>x.primary=false); st.primary=cb.checked; markDirty();renderRules(); }; tdp.appendChild(cb); const lbl=el('span','hint',' 利用者数連動'); tdp.appendChild(lbl); tr.appendChild(tdp);
+    sb.appendChild(tr);
+  });
+  // rules
+  $('#rMaxCons').value=state.rules.maxCons; $('#rMaxCons').onchange=e=>{state.rules.maxCons=+e.target.value;markDirty();};
+  $('#rWeekOff').value=state.rules.weekOff; $('#rWeekOff').onchange=e=>{state.rules.weekOff=+e.target.value;markDirty();};
+  $('#rOverlap').checked=state.rules.transportOverlap; $('#rOverlap').onchange=e=>{state.rules.transportOverlap=e.target.checked;markDirty();};
+  buildNgSelectors(); renderNgList(); renderRobotRules();
+}
+function cellText(obj,key){const td=el('td');const i=el('input');i.type='text';i.value=obj[key];i.style.width='96px';i.onchange=()=>{obj[key]=i.value;markDirty();};td.appendChild(i);return td;}
+function cellNum(obj,key,min,max){const td=el('td');const i=el('input');i.type='number';i.className='num';i.min=min;i.max=max;i.value=obj[key];i.onchange=()=>{obj[key]=+i.target?.value??+i.value;obj[key]=+i.value;markDirty();renderRobotRules();};td.appendChild(i);return td;}
+function buildNgSelectors(){
+  ['#ngA','#ngB'].forEach(sel=>{const s=$(sel);if(!s)return;s.innerHTML='';state.staff.forEach(st=>{const o=el('option',null,st.name);o.value=st.id;s.appendChild(o);});});
+}
+function renderNgList(){
+  const box=$('#ngList'); box.innerHTML='';
+  if(!state.rules.ngPairs.length){ box.appendChild(el('div','hint','NG組合せは未設定です。')); return; }
+  state.rules.ngPairs.forEach((p,idx)=>{
+    const a=staffById(p[0]), b=staffById(p[1]); if(!a||!b)return;
+    const row=el('div','rowflex'); row.style.marginBottom='6px';
+    row.appendChild(el('span','chip',a.name+' × '+b.name));
+    const del=el('button','btn sm ghost','解除'); del.onclick=()=>{state.rules.ngPairs.splice(idx,1);markDirty();renderNgList();};
+    row.appendChild(del); box.appendChild(row);
+  });
+}
+$('#addNg').onclick=()=>{
+  const a=$('#ngA').value,b=$('#ngB').value; if(a===b){toast('同一スタッフは指定できません');return;}
+  if(state.rules.ngPairs.some(p=>(p[0]===a&&p[1]===b)||(p[0]===b&&p[1]===a))){toast('既に登録済みです');return;}
+  state.rules.ngPairs.push([a,b]);markDirty();renderNgList();
+};
+function renderRobotRules(){
+  // 供給 vs 需要のざっくり試算
+  const y=state.cfg.year,m=state.cfg.month, dim=daysInMonth(y,m);
+  let openDays=0; for(let d=1;d<=dim;d++){const dow=new Date(y,m-1,d).getDay(); if(bizOpen(dow,state.cfg.biz))openDays++;}
+  // 勤務は延べコマ需要 vs 延べ供給。送迎は逐次運行(兼務可)なので「1便あたり最大人数」を各日のドライバー数と比較
+  const workPerDay = workShifts().reduce((a,s)=>a+effRequired(s,1),0);
+  const transPeak = transportShifts().reduce((a,s)=>Math.max(a,s.required),0); // 同時に必要な最大ドライバー数
+  // supply(勤務): 勤務可能な延べ日数
+  let supplyWork=0; let minDriversDay=Infinity;
+  for(let d=1;d<=dim;d++){ const dow=new Date(y,m-1,d).getDay(); if(!bizOpen(dow,state.cfg.biz))continue;
+    let drvToday=0;
+    state.staff.forEach(s=>{ if(s.days.includes(dow)&&!s.off.includes(d)){ supplyWork++; if(canDrive(s))drvToday++; } });
+    minDriversDay=Math.min(minDriversDay,drvToday);
+  }
+  if(minDriversDay===Infinity)minDriversDay=0;
+  const workDemand=workPerDay*openDays;
+  const rW = workDemand? Math.round(supplyWork/workDemand*100):0;
+  const driveOk = minDriversDay>=transPeak;
+  $('#robotRules').innerHTML =
+    `営業<b>${openDays}日</b>。<b>勤務</b>需要 約<b>${workPerDay}名/日</b>（利用者${state.cfg.usersDefault}名連動）に対し供給余力 <b class="${rW>=115?'tone-ok':rW>=100?'tone-warn':'tone-bad'}">${rW}%</b>。`+
+    `<b>送迎</b>は1便最大<b>${transPeak}名</b>必要、最も手薄な日でも運転可 <b class="${driveOk?'tone-ok':'tone-bad'}">${minDriversDay}名</b>確保。`+
+    (rW<100||!driveOk?' <b class="tone-bad">不足の可能性。</b>必要人数・配置基準・送迎可の職員数を見直してください。':' 余力あり。安定した生成が見込めます。');
+}
+
+/* =====================================================================
+   3. 勤務表生成(ルールベース)
+   ===================================================================== */
+function buildCalendar(){
+  const y=state.cfg.year,m=state.cfg.month,dim=daysInMonth(y,m);
+  const days=[];
+  for(let d=1;d<=dim;d++){ const dow=new Date(y,m-1,d).getDay(); days.push({date:d,dow, open:bizOpen(dow,state.cfg.biz), cells:{}}); }
+  return days;
+}
+function generate(){
+  const days=buildCalendar();
+  // 割当追跡
+  const workedOn = {};       // staffId -> Set(date)  (勤務・送迎いずれかで出勤した日)
+  const countAssigned = {};  // staffId -> total コマ数(公平配分用)
+  state.staff.forEach(s=>{workedOn[s.id]=new Set();countAssigned[s.id]=0;});
+
+  function consecutiveBefore(sid,date){
+    let c=0; for(let d=date-1; d>=1; d--){ if(workedOn[sid].has(d)) c++; else break; } return c;
+  }
+  function score(s){
+    let sc = (40 - countAssigned[s.id]);   // 割当が少ない人ほど優先(公平)
+    if(isQualified(s)) sc+=5;
+    if(s.emp==='常勤') sc+=2;
+    return sc;
+  }
+
+  for(const day of days){
+    if(!day.open) continue;
+    const usedWork = new Set();     // その日に勤務区分へ入った人(勤務は1人1コマ)
+    // --- ① 勤務区分(早番/日勤/遅番) ---
+    const workOrder = workShifts().sort((a,b)=> b.reqQual-a.reqQual || (b.primary?1:0)-(a.primary?1:0));
+    for(const st of workOrder){
+      day.cells[st.id]=[];
+      const need = effRequired(st,day.date);
+      const pool = state.staff.filter(s=>{
+        if(!canWork(s)) return false;                        // 送迎のみの職員は勤務に入らない
+        if(usedWork.has(s.id)) return false;                 // 勤務の掛け持ち不可(同日)
+        if(!s.days.includes(day.dow)) return false;          // 勤務可能曜日
+        if(s.off.includes(day.date)) return false;           // 希望休
+        if(consecutiveBefore(s.id,day.date) >= state.rules.maxCons) return false; // 連勤上限
+        if(state.rules.ngPairs.some(p=>{const o=(p[0]===s.id)?p[1]:(p[1]===s.id)?p[0]:null; return o&&day.cells[st.id].includes(o);})) return false; // NG同居
+        return true;
+      });
+      let qualified = pool.filter(isQualified).sort((a,b)=>score(b)-score(a));
+      let others = pool.filter(s=>!isQualified(s)).sort((a,b)=>score(b)-score(a));
+      const pick=[];
+      for(let i=0;i<st.reqQual && qualified.length;i++) pick.push(qualified.shift());
+      let rest=[...qualified,...others].sort((a,b)=>score(b)-score(a));
+      while(pick.length<need && rest.length) pick.push(rest.shift());
+      for(const s of pick){ day.cells[st.id].push(s.id); usedWork.add(s.id); workedOn[s.id].add(day.date); countAssigned[s.id]++; }
+    }
+    // --- ② 送迎区分(朝/昼/夕) 運転可の職員から。勤務との兼務は設定で許可 ---
+    for(const st of transportShifts()){
+      day.cells[st.id]=[];
+      const pool = state.staff.filter(s=>{
+        if(!canDrive(s)) return false;                       // 送迎(運転)可否
+        if(!s.days.includes(day.dow)) return false;
+        if(s.off.includes(day.date)) return false;
+        if(!state.rules.transportOverlap && usedWork.has(s.id)) return false; // 兼務不可設定時
+        if(state.rules.ngPairs.some(p=>{const o=(p[0]===s.id)?p[1]:(p[1]===s.id)?p[0]:null; return o&&day.cells[st.id].includes(o);})) return false;
+        return true;
+      });
+      // 送迎はまず「その日すでに出勤している人」を優先(移動効率)、次に割当少ない人
+      let rest = pool.sort((a,b)=> (workedOn[b.id].has(day.date)?1:0)-(workedOn[a.id].has(day.date)?1:0) || score(b)-score(a));
+      const pick=[];
+      while(pick.length<st.required && rest.length) pick.push(rest.shift());
+      for(const s of pick){ day.cells[st.id].push(s.id); if(!workedOn[s.id].has(day.date)){workedOn[s.id].add(day.date);} countAssigned[s.id]++; }
+    }
+  }
+  state.schedule = {days, y:state.cfg.year, m:state.cfg.month,
+                    usersSnapshot:days.filter(d=>d.open).reduce((o,d)=>{o[d.date]=usersFor(d.date);return o;},{}),
+                    generatedAt:new Date().toISOString()};
+  state.approval = 'draft';   // 作成段階へ
+  state.checkResult = null;
+  save();
+}
+
+function cellTone(day,st){
+  const arr=day.cells[st.id]||[];
+  const n=arr.length;
+  const req=effRequired(st,day.date);
+  const qn=arr.filter(id=>{const s=staffById(id);return s&&isQualified(s);}).length;
+  if(n < req) return 'bad';
+  if(qn < st.reqQual) return 'warn';
+  return 'ok';
+}
+function computeStats(){
+  let ok=0,warn=0,bad=0,total=0, filled=0, need=0;
+  if(!state.schedule) return {ok,warn,bad,total,fill:0};
+  for(const day of state.schedule.days){ if(!day.open)continue;
+    for(const st of state.shiftTypes){
+      total++; const t=cellTone(day,st); if(t==='ok')ok++;else if(t==='warn')warn++;else bad++;
+      const req=effRequired(st,day.date); const n=(day.cells[st.id]||[]).length; filled+=Math.min(n,req); need+=req;
+    }
+  }
+  const fill = need? Math.round(filled/need*100):0;
+  return {ok,warn,bad,total,fill};
+}
+function renderUsersEditor(){
+  $('#usDefault').textContent=state.cfg.usersDefault;
+  $('#usRatio').textContent=state.cfg.ratio;
+  const days=buildCalendar().filter(d=>d.open);
+  const tb=$('#usersTable').querySelector('tbody'); tb.innerHTML='';
+  // 7列ずつ折り返し
+  let tr=null;
+  days.forEach((d,i)=>{
+    if(i%7===0){ tr=el('tr'); tb.appendChild(tr); }
+    const td=el('td'); const wk=(d.dow===0||d.dow===6)?'wknd':'';
+    const cur=usersFor(d.date);
+    const need=state.cfg.autoStaffing? Math.ceil(cur/Math.max(1,state.cfg.ratio)):null;
+    td.innerHTML=`<div class="hint ${wk}">${d.date}(${DOW[d.dow]})</div>`;
+    const inp=el('input');inp.type='number';inp.min=0;inp.max=200;inp.value=cur;inp.style.width='58px';
+    inp.onchange=()=>{ const v=Math.max(0,+inp.value); if(v===state.cfg.usersDefault){ delete state.cfg.usersByDate[d.date]; } else { state.cfg.usersByDate[d.date]=v; } markDirty(); renderUsersEditor(); };
+    td.appendChild(inp);
+    if(need!=null) td.appendChild(el('div','hint',`日勤${need}名`));
+    tr.appendChild(td);
+  });
+}
+function renderGen(){
+  renderUsersEditor();
+  const has=!!state.schedule;
+  $('#genResult').classList.toggle('hidden',!has);
+  $('#genEmpty').classList.toggle('hidden',has);
+  $('#clearGen').disabled = !has || state.approval==='finalized';
+  if(!has) return;
+  const st=computeStats();
+  const tone = st.fill>=100?'tone-ok':st.fill>=90?'tone-warn':'tone-bad';
+  $('#kFill').innerHTML = `<span class="${tone}">${st.fill}<small>%</small></span>`;
+  const bar=$('#kFillBar'); bar.style.width=Math.min(100,st.fill)+'%'; bar.style.background = st.fill>=100?'var(--ok)':st.fill>=90?'var(--warn)':'var(--bad)';
+  $('#kOk').textContent=st.ok; $('#kWarn').textContent=st.warn; $('#kBad').textContent=st.bad;
+  // table: rows=day, cols= 利用者数 + 勤務区分 + 送迎区分
+  const head=$('#genHead'); head.innerHTML='';
+  // 区分グループ行
+  const gr=el('tr'); gr.appendChild(el('th','','')); gr.appendChild(el('th','','利用者'));
+  const wc=workShifts().length, tc=transportShifts().length;
+  const gw=el('th','','勤務区分'); gw.colSpan=wc; gw.style.textAlign='center'; gr.appendChild(gw);
+  const gt=el('th','','送迎区分'); gt.colSpan=tc; gt.style.textAlign='center'; gt.style.background='#eef7f2'; gr.appendChild(gt);
+  head.appendChild(gr);
+  const hr=el('tr'); hr.appendChild(el('th','','日付')); hr.appendChild(el('th','','数'));
+  state.shiftTypes.forEach(s=>{ const q=s.reqQual>0?`/資格${s.reqQual}`:''; const auto=s.primary&&state.cfg.autoStaffing?' 🤖自動':''; hr.appendChild(el('th','',`<span class="shift-tag" style="background:${s.color}">${s.name}</span><div class="hint">必要${s.required}${q}${auto}</div>`)); });
+  head.appendChild(hr);
+  const body=$('#genBody'); body.innerHTML='';
+  for(const day of state.schedule.days){
+    const tr=el('tr');
+    const wk=(day.dow===0||day.dow===6)?'wknd':'';
+    tr.appendChild(el('td','',`<b class="${wk}">${day.date}</b> <span class="${wk}">(${DOW[day.dow]})</span>`));
+    if(!day.open){ const td=el('td','',''); td.colSpan=state.shiftTypes.length+1; td.innerHTML='<span class="hint">休業日</span>'; tr.appendChild(td); body.appendChild(tr); continue; }
+    tr.appendChild(el('td','',`<b>${usersFor(day.date)}</b><div class="hint">名</div>`));
+    state.shiftTypes.forEach(s=>{
+      const arr=day.cells[s.id]||[]; const tone=cellTone(day,s); const req=effRequired(s,day.date);
+      const td=el('td','cell-'+tone);
+      const names=arr.map(id=>{const p=staffById(id);const q=p&&isQualified(p)?'●':'';return `<span class="chip${q?' q':''}">${q}${p?p.name:'?'}</span>`;}).join(' ');
+      const pill = tone==='ok'?'<span class="pill ok">充足</span>':tone==='warn'?'<span class="pill warn">注意</span>':'<span class="pill bad">不足</span>';
+      td.innerHTML = `<div style="margin-bottom:4px">${pill} <span class="hint">${arr.length}/${req}</span></div><div class="chips">${names||'<span class="hint">未配置</span>'}</div>`;
+      tr.appendChild(td);
+    });
+    body.appendChild(tr);
+  }
+}
+$('#genBtn').onclick=()=>{
+  if(state.approval==='finalized'){toast('確定済みです。確定解除してください');return;}
+  if(!state.staff.length){toast('スタッフを登録してください');return;}
+  const run=()=>{ generate(); renderGen(); renderApproval(); syncLocks(); const s=computeStats(); toast(`生成完了：充足率 ${s.fill}%(不足${s.bad}コマ)`); };
+  if(state.schedule){
+    modal({title:'⚙️ 再生成しますか？',body:'既存の勤務表を破棄して作り直します。承認段階は「作成」に戻ります。',confirmText:'再生成',onConfirm:run});
+  }else run();
+};
+$('#clearGen').onclick=()=>{
+  modal({title:'クリア',body:'生成した勤務表を削除しますか？',confirmText:'削除',danger:true,onConfirm:()=>{state.schedule=null;state.approval='edit';state.checkResult=null;save();renderGen();renderApproval();syncLocks();toast('クリアしました');}});
+};
+$('#toggleUsers').onclick=()=>{ $('#usersPanel').classList.toggle('hidden'); };
+$('#usReset').onclick=()=>{ state.cfg.usersByDate={}; markDirty(); renderUsersEditor(); toast('利用者数を標準に戻しました'); };
+
+/* =====================================================================
+   4. 制約チェック(コード側検証)
+   ===================================================================== */
+function runCheck(silent){
+  const V=[]; // {level:'err'|'warn', type, text, sub}
+  if(!state.schedule){ state.checkResult={items:[],errors:0,warns:0,total:0}; return state.checkResult; }
+  const days=state.schedule.days;
+  let total=0;
+  // 1) 配置人数割れ / 資格要件未達 / 送迎運転不可（コマ単位）
+  for(const day of days){ if(!day.open)continue;
+    for(const st of state.shiftTypes){
+      total++;
+      const arr=day.cells[st.id]||[];
+      const req=effRequired(st,day.date);
+      const qn=arr.filter(id=>{const s=staffById(id);return s&&isQualified(s);}).length;
+      if(arr.length < req){
+        const label = st.kind==='transport'?'送迎人数割れ':'配置人数割れ';
+        const auto = st.primary&&state.cfg.autoStaffing?`(利用者${usersFor(day.date)}名基準)`:'';
+        V.push({level:'err',type:label,text:`${day.date}日(${DOW[day.dow]}) ${st.name}：必要${req}名${auto}に対し${arr.length}名`,sub:`不足 ${req-arr.length}名`});
+      }
+      if(qn < st.reqQual){
+        V.push({level:'err',type:'資格要件未達',text:`${day.date}日(${DOW[day.dow]}) ${st.name}：有資格者 最低${st.reqQual}名に対し${qn}名`,sub:`有資格 不足 ${st.reqQual-qn}名`});
+      }
+      // 送迎に運転不可の職員が入っていないか
+      if(st.kind==='transport'){ const bad=arr.filter(id=>{const s=staffById(id);return s&&!canDrive(s);}).map(id=>staffById(id)?.name);
+        if(bad.length) V.push({level:'err',type:'送迎運転不可',text:`${day.date}日 ${st.name}：運転不可の職員が配置(${bad.join(',')})`,sub:''}); }
+    }
+  }
+  // 2) 連勤オーバー / 希望休無視 / NG組合せ（スタッフ単位）
+  for(const s of state.staff){
+    // 出勤日リスト(勤務・送迎いずれか)
+    const worked=[];
+    for(const day of days){ if(!day.open)continue; if(state.shiftTypes.some(st=>(day.cells[st.id]||[]).includes(s.id))) worked.push(day.date); }
+    worked.sort((a,b)=>a-b);
+    // 連勤
+    let streak=1,maxStreak=worked.length?1:0;
+    for(let i=1;i<worked.length;i++){ if(worked[i]===worked[i-1]+1){streak++;maxStreak=Math.max(maxStreak,streak);}else streak=1; }
+    if(maxStreak>state.rules.maxCons){ V.push({level:'err',type:'連勤オーバー',text:`${s.name}：最大${maxStreak}連勤(上限${state.rules.maxCons})`,sub:'休日の挿入が必要'}); }
+    // 希望休無視
+    const hitOff = worked.filter(d=>s.off.includes(d));
+    if(hitOff.length){ V.push({level:'err',type:'希望休無視',text:`${s.name}：希望休の日に配置(${hitOff.join(',')}日)`,sub:'希望休を尊重してください'}); }
+    // 週休数(7日窓で休みが weekOff 未満)
+    const dim=daysInMonth(state.schedule.y,state.schedule.m);
+    for(let start=1;start+6<=dim;start+=7){
+      let w=0; for(let d=start;d<=start+6;d++){ const dow=new Date(state.schedule.y,state.schedule.m-1,d).getDay(); if(bizOpen(dow,state.cfg.biz)&&worked.includes(d))w++; }
+      const offCount=7-w;
+      if(offCount<state.rules.weekOff){ V.push({level:'warn',type:'週休不足',text:`${s.name}：${start}〜${start+6}日で休${offCount}日(基準${state.rules.weekOff}日)`,sub:'負担偏りに注意'}); break; }
+    }
+  }
+  // 3) NG組合せ(同一シフト同居)
+  for(const day of days){ if(!day.open)continue;
+    for(const st of state.shiftTypes){ const arr=day.cells[st.id]||[];
+      for(const p of state.rules.ngPairs){ if(arr.includes(p[0])&&arr.includes(p[1])){ const a=staffById(p[0]),b=staffById(p[1]); V.push({level:'warn',type:'NG組合せ',text:`${day.date}日 ${st.name}：${a?.name}と${b?.name}が同一シフト`,sub:'相性NGの設定あり'}); } }
+    }
+  }
+  const errors=V.filter(v=>v.level==='err').length;
+  const warns=V.filter(v=>v.level==='warn').length;
+  state.checkResult={items:V,errors,warns,total,at:new Date().toISOString()};
+  save();
+  return state.checkResult;
+}
+function renderCheck(){
+  const r = state.checkResult || runCheck();
+  $('#cErr').textContent=r.errors; $('#cWarn').textContent=r.warns; $('#cTotal').textContent=r.total;
+  $('#checkStamp').textContent = r.at? '検証: '+new Date(r.at).toLocaleString('ja-JP') : '未検証';
+  const box=$('#violList'); box.innerHTML='';
+  if(!state.schedule){ box.appendChild(el('div','empty','勤務表が未生成です。③で生成してください。')); return; }
+  if(!r.items.length){ box.appendChild(el('div','ok-banner','✅ 制約違反はありません。確定へ進めます。')); return; }
+  // err first
+  const sorted=[...r.items].sort((a,b)=> (a.level==='err'?0:1)-(b.level==='err'?0:1));
+  sorted.forEach(v=>{
+    const d=el('div','viol '+(v.level==='err'?'err':'warn'));
+    d.innerHTML=`<div class="vi">${v.level==='err'?'⛔':'⚠️'}</div><div><div class="vt">${v.type}</div><div class="vs">${v.text}${v.sub?' — '+v.sub:''}</div></div>`;
+    box.appendChild(d);
+  });
+}
+$('#reCheck').onclick=()=>{ runCheck(); renderCheck(); toast('再検証しました'); };
+
+/* =====================================================================
+   5. 月間ビュー + CSV
+   ===================================================================== */
+function workShiftOfStaff(day,sid){ for(const st of workShifts()){ if((day.cells[st.id]||[]).includes(sid)) return st; } return null; }
+function transportsOfStaff(day,sid){ return transportShifts().filter(st=>(day.cells[st.id]||[]).includes(sid)); }
+function renderMonth(){
+  $('#monthStamp').textContent = state.schedule? `${state.schedule.y}年${state.schedule.m}月` : '未生成';
+  const leg=$('#monthLegend'); leg.innerHTML='';
+  state.shiftTypes.forEach(s=>{ const sp=el('span'); sp.innerHTML=`<i class="sw" style="background:${s.color}"></i>${s.name}`; leg.appendChild(sp); });
+  leg.appendChild((()=>{const sp=el('span');sp.innerHTML='<i class="sw" style="background:#e3e8ee"></i>休';return sp;})());
+  const head=$('#monthHead'), body=$('#monthBody'); head.innerHTML=''; body.innerHTML='';
+  if(!state.schedule){ body.innerHTML='<tr><td class="empty">勤務表が未生成です。③で生成してください。</td></tr>'; return; }
+  const days=state.schedule.days;
+  const hr=el('tr'); hr.appendChild(el('th','name','スタッフ'));
+  days.forEach(d=>{ const wk=(d.dow===0||d.dow===6)?'wknd':''; hr.appendChild(el('th',wk,`${d.date}<div class="hint ${wk}">${DOW[d.dow]}</div>`)); });
+  hr.appendChild(el('th','','勤務')); hr.appendChild(el('th','','送迎')); hr.appendChild(el('th','','最長連勤'));
+  head.appendChild(hr);
+  state.staff.forEach(s=>{
+    const tr=el('tr'); tr.appendChild(el('td','name',(isQualified(s)?'● ':'')+(canDrive(s)?'🚐 ':'')+s.name));
+    let work=0,trans=0; const workedDays=[];
+    days.forEach(d=>{
+      if(!d.open){ tr.appendChild(el('td','','·')); return; }
+      const st=workShiftOfStaff(d,s.id); const ts=transportsOfStaff(d,s.id);
+      const td=el('td');
+      let html='';
+      if(st){ html+=`<span class="shift-tag" style="background:${st.color}">${st.name[0]}</span>`; work++; }
+      if(ts.length){ trans+=ts.length; html+=ts.map(t=>`<span class="shift-tag" style="background:${t.color};font-size:9px;padding:1px 4px">${t.name[0]}</span>`).join(''); }
+      if(st||ts.length){ workedDays.push(d.date); }
+      else { const off=s.off.includes(d.date); html= off?'<span class="hint" style="color:var(--warn)">希</span>':'<span class="hint">休</span>'; }
+      td.innerHTML=html; tr.appendChild(td);
+    });
+    workedDays.sort((a,b)=>a-b); let streak=workedDays.length?1:0,mx=streak; for(let i=1;i<workedDays.length;i++){if(workedDays[i]===workedDays[i-1]+1){streak++;mx=Math.max(mx,streak);}else streak=1;}
+    const over = mx>state.rules.maxCons;
+    tr.appendChild(el('td','',`${work}日`));
+    tr.appendChild(el('td','',`${trans}回`));
+    tr.appendChild(el('td', over?'tone-bad':'', `${mx}連${over?' ⚠️':''}`));
+    body.appendChild(tr);
+  });
+}
+function downloadCSV(name,rows){
+  const csv=rows.map(r=>r.map(c=>{c=(c==null?'':String(c)); return /[",\n]/.test(c)?'"'+c.replace(/"/g,'""')+'"':c;}).join(',')).join('\r\n');
+  const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
+  const a=el('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click(); URL.revokeObjectURL(a.href);
+  toast(name+' を出力しました');
+}
+$('#csvStaff').onclick=()=>{
+  if(!state.schedule){toast('未生成です');return;}
+  const days=state.schedule.days;
+  const header=['スタッフ','雇用形態','資格','送迎可', ...days.map(d=>`${d.date}(${DOW[d.dow]})`),'勤務日数','送迎回数'];
+  const rows=[header];
+  state.staff.forEach(s=>{ let work=0,trans=0; const r=[s.name,s.emp,s.quals.join('/'),canDrive(s)?'○':''];
+    days.forEach(d=>{ if(!d.open){r.push('休業');return;}
+      const st=workShiftOfStaff(d,s.id); const ts=transportsOfStaff(d,s.id);
+      let cell=''; if(st){cell=st.name;work++;} if(ts.length){cell=(cell?cell+'+':'')+ts.map(t=>t.name).join('+');trans+=ts.length;}
+      r.push(cell|| (s.off.includes(d.date)?'希望休':'休')); });
+    r.push(work,trans); rows.push(r);
+  });
+  downloadCSV(`シフト_スタッフ別_${state.schedule.y}${String(state.schedule.m).padStart(2,'0')}.csv`,rows);
+};
+$('#csvShift').onclick=()=>{
+  if(!state.schedule){toast('未生成です');return;}
+  const rows=[['日付','曜日','種別','シフト','利用者数','必要人数','配置人数','有資格数','状態','配置スタッフ']];
+  for(const d of state.schedule.days){ if(!d.open){rows.push([d.date,DOW[d.dow],'','休業','','','','','','']);continue;}
+    for(const st of state.shiftTypes){ const arr=d.cells[st.id]||[]; const qn=arr.filter(id=>isQualified(staffById(id))).length; const tone=cellTone(d,st); const req=effRequired(st,d.date);
+      rows.push([d.date,DOW[d.dow], st.kind==='transport'?'送迎':'勤務', st.name, usersFor(d.date), req, arr.length, qn, tone==='ok'?'充足':tone==='warn'?'注意':'不足', arr.map(id=>staffById(id)?.name).join(' ')]);
+    }
+  }
+  downloadCSV(`シフト_区分別_${state.schedule.y}${String(state.schedule.m).padStart(2,'0')}.csv`,rows);
+};
+$('#printBtn').onclick=()=>window.print();
+
+/* =====================================================================
+   共通
+   ===================================================================== */
+function markDirty(){
+  // 設定変更後は再生成が必要。確認/確定はリセットしない(引継のため)が、生成物は古い旨をチェックで検出
+  save();
+}
+function updatePeriodBadge(){ $('#periodBadge').textContent=`対象月 ${state.cfg.year}年${state.cfg.month}月`; }
+
+function boot(){
+  load();
+  $('#storeKeyLabel').textContent=STORE_KEY;
+  renderStaff(); renderRules(); renderGen(); renderApproval(); syncLocks(); updatePeriodBadge();
+}
+boot();
+</script>
+</body>
+</html>
